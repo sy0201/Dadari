@@ -1,3 +1,4 @@
+import AppIntents
 import XCTest
 @testable import Dadari
 
@@ -48,5 +49,11 @@ final class RecordPeriodIntentsTests: XCTestCase {
         // 이 스파이크의 핵심 조건. true가 되면 잠금화면에서 앱이 열려버린다.
         XCTAssertFalse(RecordPeriodStartIntent.openAppWhenRun)
         XCTAssertFalse(RecordPeriodEndIntent.openAppWhenRun)
+    }
+
+    func test_잠금_상태에서도_실행되도록_설정돼_있다() {
+        // 기본값 .requiresAuthentication이면 잠긴 기기에서 탭이 조용히 무시된다.
+        XCTAssertEqual(RecordPeriodStartIntent.authenticationPolicy, .alwaysAllowed)
+        XCTAssertEqual(RecordPeriodEndIntent.authenticationPolicy, .alwaysAllowed)
     }
 }

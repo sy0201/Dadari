@@ -119,6 +119,29 @@ App Group 공유가 실제로 동작한다는 뜻이다.
 Xcode에서 **Debug → Attach to Process by PID or Name**에 `DadariWidget`을 넣어두면
 위젯 익스텐션이 뜨는 순간 붙는다. `RecordPeriodIntentRunner.run(_:)`에 중단점을 걸고 잠금화면에서 탭한다.
 
+## 함정: 잠금 상태에서는 인텐트가 조용히 무시된다
+
+`AppIntent.authenticationPolicy`의 기본값은 `.requiresAuthentication`이다.
+이 상태에서는 **기기가 잠겨 있으면 잠금화면 위젯의 버튼을 눌러도 인텐트가 실행되지 않는다.**
+오류도 안 뜨고 아무 반응이 없어서, 위젯 배선이 잘못된 것처럼 보인다.
+
+```swift
+static let authenticationPolicy: IntentAuthenticationPolicy = .alwaysAllowed
+```
+
+잠금 해제 없이 탭 한 번으로 기록하는 게 이 앱의 핵심 행동(UX-설계 4번)이므로 명시적으로 허용한다.
+`RecordPeriodIntentsTests`가 이 설정을 고정한다.
+
+참고로 얼굴 인식이 걸린 상태에서 우연히 잠금이 풀린 채로 테스트하면 기본값으로도 동작하는 것처럼 보인다.
+검증할 때는 화면을 끄고 **잠긴 상태에서** 눌러야 한다.
+
+### 이 값을 `.alwaysAllowed`로 두는 것의 의미
+
+기기를 잠근 채로도 기록이 남는다는 뜻이다. 건강 데이터를 다루는 앱이라 짚고 넘어갈 필요가 있는데,
+위젯이 노출하는 정보는 사용자가 직접 잠금화면에 올리기로 선택한 것이고,
+버튼이 하는 일은 오늘 날짜 기록 한 건 추가가 전부다. 되돌리기 경로(기록 수정/삭제)도 MVP 범위에 있다.
+설정에서 이 동작을 끄고 싶어지면 v1.1의 Face ID 잠금 옵션(UX-설계 8번)과 함께 다룬다.
+
 ## 위젯 텍스트는 바뀌는데 앱 목록이 비어 있을 때
 
 앱과 위젯은 별개 프로세스라 **한쪽만 App Group을 놓칠 수 있다.** 위젯이 공유 컨테이너를 못 잡으면
