@@ -11,8 +11,7 @@ struct RecordPeriodStartIntent: AppIntent {
     init() {}
 
     func perform() async throws -> some IntentResult {
-        SpikeRecordStore.shared.record(.start, source: .lockScreen)
-        WidgetCenter.shared.reloadAllTimelines()
+        RecordPeriodIntentRunner.run(.start)
         return .result()
     }
 }
@@ -25,8 +24,25 @@ struct RecordPeriodEndIntent: AppIntent {
     init() {}
 
     func perform() async throws -> some IntentResult {
-        SpikeRecordStore.shared.record(.end, source: .lockScreen)
-        WidgetCenter.shared.reloadAllTimelines()
+        RecordPeriodIntentRunner.run(.end)
         return .result()
+    }
+}
+
+/// 두 인텐트가 공유하는 실행 본체. 검증 로그를 한 곳에서 남기기 위해 분리했다.
+enum RecordPeriodIntentRunner {
+    static func run(_ kind: SpikeEntryKind) {
+        let store = SpikeRecordStore.shared
+        let outcome = store.record(kind, source: .lockScreen)
+        let total = store.entries().count
+
+        SpikeLog.intent.notice("""
+            인텐트 실행 kind=\(kind.rawValue, privacy: .public) \
+            결과=\(outcome.isNewRecord ? "기록됨" : "중복무시", privacy: .public) \
+            총건수=\(total, privacy: .public) \
+            AppGroup=\(store.isUsingSharedContainer ? "연결됨" : "실패", privacy: .public)
+            """)
+
+        WidgetCenter.shared.reloadAllTimelines()
     }
 }

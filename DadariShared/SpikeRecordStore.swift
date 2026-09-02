@@ -11,9 +11,14 @@ final class SpikeRecordStore {
     /// 인텐트가 이 인스턴스를 직접 참조하므로, 테스트에서 갈아끼울 수 있도록 `var`로 둔다.
     static var shared: SpikeRecordStore = {
         if let defaults = AppGroup.sharedDefaults {
+            SpikeLog.store.notice("App Group 연결됨 (\(AppGroup.identifier, privacy: .public))")
             return SpikeRecordStore(store: defaults, isUsingSharedContainer: true)
         }
         // App Group 프로비저닝이 잘못된 경우. 앱은 계속 동작하되 위젯과 데이터가 갈린다.
+        SpikeLog.store.error("""
+            App Group 연결 실패 (\(AppGroup.identifier, privacy: .public)). \
+            엔타이틀먼트 또는 프로비저닝 프로파일을 확인할 것. 로컬 저장소로 폴백한다.
+            """)
         return SpikeRecordStore(store: UserDefaults.standard, isUsingSharedContainer: false)
     }()
 

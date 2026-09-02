@@ -13,7 +13,7 @@ PRD 10번 일정 **1주차** 완료 단계. 레포/CI 셋업과 위젯 기술 �
 
 ## 요구 환경
 
-- Xcode 16 이상 (`project.pbxproj`가 objectVersion 77 / 동기화 폴더 그룹을 사용)
+- Xcode 16 이상 (`project.pbxproj`가 동기화 폴더 그룹을 사용)
 - iOS 17.0 이상 (인터랙티브 위젯의 `Button(intent:)`가 iOS 17부터)
 
 ## 타겟 구성
