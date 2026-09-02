@@ -66,3 +66,26 @@ DerivedData/
 *.xcresult
 .build/
 .DS_Store
+
+## 서명 자격증명 / 비밀정보 (공개 레포이므로 절대 커밋 금지)
+# 12~13주차 TestFlight 배포 시 작업 폴더에 생기는 파일들이다.
+*.p12
+*.pfx
+*.cer
+*.crt
+*.der
+*.pem
+*.key
+*.p8
+*.mobileprovision
+*.provisionprofile
+*.certSigningRequest
+*.keystore
+*.jks
+id_rsa
+id_ed25519
+.env
+.env.*
+Secrets.xcconfig
+*.secret.xcconfig
+fastlane/.env*
