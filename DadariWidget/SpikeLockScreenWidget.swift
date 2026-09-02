@@ -54,9 +54,12 @@ struct SpikeWidgetView: View {
         }
     }
 
+    /// App Group을 못 잡으면 위젯이 자기 로컬 저장소에 쓰게 되고, 그러면 앱에서는 기록이 안 보인다.
+    /// 위젯 텍스트만 갱신되고 앱은 비어 있는 상태를 잠금화면에서 바로 구분할 수 있게 표시한다.
     private var statusText: String {
-        guard let latest = entry.latest else { return "기록 없음" }
-        return "\(latest.kind.label) \(latest.day.formatted(.dateTime.month().day())) · \(entry.count)건"
+        let prefix = entry.isUsingSharedContainer ? "" : "⚠︎ 로컬 "
+        guard let latest = entry.latest else { return prefix + "기록 없음" }
+        return prefix + "\(latest.kind.label) \(latest.day.formatted(.dateTime.month().day())) · \(entry.count)건"
     }
 
     @ViewBuilder
