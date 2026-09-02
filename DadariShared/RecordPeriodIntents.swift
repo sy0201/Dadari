@@ -7,6 +7,9 @@ struct RecordPeriodStartIntent: AppIntent {
     static let title: LocalizedStringResource = "생리 시작 기록"
     static let description = IntentDescription("오늘 날짜로 생리 시작일을 기록합니다.")
     static let openAppWhenRun = false
+    /// 기본값 `.requiresAuthentication`이면 기기가 잠긴 상태에서는 인텐트가 조용히 무시된다.
+    /// 잠금 해제 없이 탭 한 번으로 기록하는 게 이 앱의 핵심 행동이라 명시적으로 허용한다.
+    static let authenticationPolicy: IntentAuthenticationPolicy = .alwaysAllowed
 
     init() {}
 
@@ -20,6 +23,7 @@ struct RecordPeriodEndIntent: AppIntent {
     static let title: LocalizedStringResource = "생리 종료 기록"
     static let description = IntentDescription("오늘 날짜로 생리 종료일을 기록합니다.")
     static let openAppWhenRun = false
+    static let authenticationPolicy: IntentAuthenticationPolicy = .alwaysAllowed
 
     init() {}
 
