@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Build & Test
+    # Dadari.xcodeproj는 Xcode 16의 동기화 폴더 그룹을 쓰므로 Xcode 16 이상이 필요하다.
+    runs-on: macos-15
+    env:
+      PROJECT: Dadari.xcodeproj
+      SCHEME: Dadari
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+
+      - name: Verify Xcode version
+        run: |
+          major=$(xcodebuild -version | head -1 | sed -E 's/Xcode ([0-9]+).*/\1/')
+          if [ "$major" -lt 16 ]; then
+            echo "::error::Xcode 16 이상이 필요합니다 (현재 $major). project.pbxproj가 동기화 폴더 그룹을 사용합니다."
+            exit 1
+          fi
+
+      # 러너 이미지가 바뀌어도 깨지지 않도록 시뮬레이터를 이름이 아니라 UDID로 찾는다.
+      - name: Resolve simulator destination
+        id: sim
+        run: |
+          udid=$(python3 Scripts/latest_iphone_simulator.py)
+          echo "udid=$udid" >> "$GITHUB_OUTPUT"
+
+      # Dadari 스킴은 앱 타겟과 위젯 익스텐션 타겟을 함께 빌드하고, appex를 앱에 임베드한다.
+      - name: Build (app + widget extension)
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project "$PROJECT" \
+            -scheme "$SCHEME" \
+            -destination "id=${{ steps.sim.outputs.udid }}" \
+            -derivedDataPath .build \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Test (CyclePredictionService 등 로직 검증)
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -project "$PROJECT" \
+            -scheme "$SCHEME" \
+            -destination "id=${{ steps.sim.outputs.udid }}" \
+            -derivedDataPath .build \
+            -resultBundlePath TestResults.xcresult \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Upload test results
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: TestResults.xcresult
+          if-no-files-found: ignore
