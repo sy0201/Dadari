@@ -39,27 +39,8 @@ jobs:
       - name: Resolve simulator destination
         id: sim
         run: |
-          udid=$(xcrun simctl list devices available --json | python3 -c '
-import json, re, sys
-
-devices = json.load(sys.stdin)["devices"]
-best = None
-for runtime, entries in devices.items():
-    match = re.search(r"iOS-(\d+)-(\d+)", runtime)
-    if not match:
-        continue
-    version = (int(match.group(1)), int(match.group(2)))
-    for device in entries:
-        if device.get("isAvailable") and device["name"].startswith("iPhone"):
-            if best is None or version > best[0]:
-                best = (version, device["udid"], device["name"])
-if best is None:
-    sys.exit("사용 가능한 iPhone 시뮬레이터가 없습니다.")
-print(best[1])
-')
-          if [ -z "$udid" ]; then exit 1; fi
+          udid=$(python3 Scripts/latest_iphone_simulator.py)
           echo "udid=$udid" >> "$GITHUB_OUTPUT"
-          xcrun simctl list devices available | grep "$udid"
 
       # Dadari 스킴은 앱 타겟과 위젯 익스텐션 타겟을 함께 빌드하고, appex를 앱에 임베드한다.
       - name: Build (app + widget extension)
