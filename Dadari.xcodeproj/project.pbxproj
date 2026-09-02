@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 77;
+	objectVersion = 70;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -51,10 +51,10 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		0B0000000000000000000001 /* Dadari */ = {isa = PBXFileSystemSynchronizedRootGroup; path = Dadari; sourceTree = "<group>"; };
-		0B0000000000000000000003 /* DadariShared */ = {isa = PBXFileSystemSynchronizedRootGroup; path = DadariShared; sourceTree = "<group>"; };
-		0B0000000000000000000002 /* DadariWidget */ = {isa = PBXFileSystemSynchronizedRootGroup; path = DadariWidget; sourceTree = "<group>"; };
-		0B0000000000000000000004 /* DadariTests */ = {isa = PBXFileSystemSynchronizedRootGroup; path = DadariTests; sourceTree = "<group>"; };
+		0B0000000000000000000001 /* Dadari */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Dadari; sourceTree = "<group>"; };
+		0B0000000000000000000002 /* DadariWidget */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = DadariWidget; sourceTree = "<group>"; };
+		0B0000000000000000000003 /* DadariShared */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = DadariShared; sourceTree = "<group>"; };
+		0B0000000000000000000004 /* DadariTests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = DadariTests; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -139,7 +139,7 @@
 			packageProductDependencies = (
 			);
 			productName = Dadari;
-			productReference = 0C0000000000000000000001;
+			productReference = 0C0000000000000000000001 /* Dadari.app */;
 			productType = "com.apple.product-type.application";
 		};
 		0D0000000000000000000002 /* DadariWidget */ = {
@@ -162,7 +162,7 @@
 			packageProductDependencies = (
 			);
 			productName = DadariWidget;
-			productReference = 0C0000000000000000000002;
+			productReference = 0C0000000000000000000002 /* DadariWidget.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
 		0D0000000000000000000003 /* DadariTests */ = {
@@ -185,7 +185,7 @@
 			packageProductDependencies = (
 			);
 			productName = DadariTests;
-			productReference = 0C0000000000000000000003;
+			productReference = 0C0000000000000000000003 /* DadariTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
 /* End PBXNativeTarget section */
@@ -220,7 +220,6 @@
 			);
 			mainGroup = 0A0000000000000000000002;
 			minimizedProjectReferenceProxies = 1;
-			preferredProjectObjectVersion = 77;
 			productRefGroup = 0A0000000000000000000003 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -397,12 +396,13 @@
 				CODE_SIGN_ENTITLEMENTS = Config/Dadari.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 5Y43RDX3FM;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -423,12 +423,13 @@
 				CODE_SIGN_ENTITLEMENTS = Config/Dadari.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 5Y43RDX3FM;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -447,8 +448,9 @@
 				CODE_SIGN_ENTITLEMENTS = Config/DadariWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 5Y43RDX3FM;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = Config/DadariWidget-Info.plist;
+				INFOPLIST_FILE = "Config/DadariWidget-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = Dadari;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -471,8 +473,9 @@
 				CODE_SIGN_ENTITLEMENTS = Config/DadariWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 5Y43RDX3FM;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = Config/DadariWidget-Info.plist;
+				INFOPLIST_FILE = "Config/DadariWidget-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = Dadari;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (

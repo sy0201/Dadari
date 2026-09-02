@@ -77,6 +77,65 @@ UserDefaults(suiteName: "group.com.dadari.app")   ← App Group 공유 컨테이
 - 결과:
 - 특이사항:
 
+## 기록이 실제로 저장됐는지 확인하는 방법
+
+잠금화면에서 버튼이 눌리는 것과 기록이 저장되는 것은 별개다. 아래 순서로 확인한다.
+
+### 1. 위젯 텍스트 (잠금화면에서 바로)
+
+가로형 위젯의 첫 줄이 `기록 없음` → `시작 9월 2일 · 1건`으로 바뀌면 저장까지 된 것이다.
+인텐트가 저장 후 `WidgetCenter.shared.reloadAllTimelines()`를 부르고, 갱신된 타임라인이
+저장소를 **다시 읽어서** 그리기 때문에 화면이 바뀐 것 자체가 읽기/쓰기가 다 됐다는 증거다.
+버튼은 눌리는데(햅틱/애니메이션은 있는데) 텍스트가 안 바뀌면 저장이 실패한 것이다.
+
+### 2. 앱을 열어서 목록 확인 (가장 확실한 확인)
+
+이게 진짜 검증이다. 위젯 익스텐션과 앱은 **별개 프로세스**라서, 위젯에서 쓴 기록이 앱에 보이면
+App Group 공유가 실제로 동작한다는 뜻이다.
+
+- 상단 "App Group / 컨테이너"가 **공유됨**이고 컨테이너 경로가 보이는지
+- 목록에 방금 누른 항목이 `lockScreen` 출처와 초 단위 시각까지 찍혀 있는지
+
+### 3. Console.app 로그 (안 될 때 원인 찾기)
+
+위젯 익스텐션은 별개 프로세스라 Xcode 콘솔에 로그가 안 섞여 나온다. 대신 macOS의 **Console.app**을 열고
+왼쪽에서 연결된 iPhone을 선택한 뒤, 검색창에 `subsystem:com.dadari.app`을 넣고 **Start streaming**을 누른다.
+잠금화면에서 버튼을 누르면 이런 줄이 떠야 한다.
+
+```
+인텐트 실행 kind=start 결과=기록됨 총건수=1 AppGroup=연결됨
+```
+
+이 로그로 세 가지가 한 번에 구분된다.
+
+| 증상 | 의미 |
+|---|---|
+| 로그가 아예 안 뜸 | 인텐트가 실행되지 않음. 위젯/인텐트 배선 문제 |
+| `AppGroup=실패` | 인텐트는 실행됐지만 공유 컨테이너를 못 잡음. 엔타이틀먼트/프로비저닝 문제 |
+| `결과=중복무시` | 정상. 오늘 같은 종류를 이미 기록해둔 상태 |
+
+### 4. 디버거 붙이기 (그래도 모르겠을 때)
+
+Xcode에서 **Debug → Attach to Process by PID or Name**에 `DadariWidget`을 넣어두면
+위젯 익스텐션이 뜨는 순간 붙는다. `RecordPeriodIntentRunner.run(_:)`에 중단점을 걸고 잠금화면에서 탭한다.
+
+## 함정: Xcode가 App Group 엔타이틀먼트를 비워버린다
+
+Signing & Capabilities에서 팀을 고를 때, 그 팀의 개발자 계정에 App Group이 등록돼 있지 않으면
+**Xcode가 `.entitlements`의 app-groups 배열을 조용히 `<array/>`로 비운다.** 실제로 1주차에 한 번 발생했다.
+
+이 상태가 특히 나쁜 이유는 앱은 정상적으로 빌드되고 실행되기 때문이다. 잠금화면 버튼도 눌리고,
+위젯 쪽에는 엔타이틀먼트가 남아 있으면 위젯 텍스트까지 갱신된다. 그런데 앱에서는 기록이 안 보인다.
+
+`UserDefaults(suiteName:)`은 엔타이틀먼트가 없어도 nil이 아닌 객체를 돌려주기 때문에 판단 근거가 못 된다.
+그래서 `AppGroup.isAvailable`은 `FileManager.containerURL(forSecurityApplicationGroupIdentifier:)`로 판정한다.
+이 API는 엔타이틀먼트가 없으면 nil을 반환한다.
+
+**대응**: 앱과 위젯 **두 타겟 모두**에서 Signing & Capabilities → App Groups의 `group.com.dadari.app`이
+체크돼 있는지 확인한다. 없으면 `+ Capability → App Groups`로 추가한다 (Xcode가 개발자 계정에도 등록해준다).
+그 뒤 `Config/Dadari.entitlements`와 `Config/DadariWidget.entitlements`가 비워지지 않았는지
+git diff로 확인하는 습관을 들인다.
+
 ## 남은 이슈 / 다음 단계로 넘길 것
 
 - **다른 날짜 기록 경로**: PRD 4.1의 "다른 날짜로 기록할 때만 앱이 열리고 캘린더 피커로 전환"은 이번 스파이크 범위 밖이다.

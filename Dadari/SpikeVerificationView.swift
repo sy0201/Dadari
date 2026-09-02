@@ -21,6 +21,16 @@ struct SpikeVerificationView: View {
                     }
                     LabeledContent("식별자", value: AppGroup.identifier)
                         .font(.caption)
+                    if let path = AppGroup.containerURL?.path {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("컨테이너 경로")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Text(path)
+                                .font(.caption2)
+                                .textSelection(.enabled)
+                        }
+                    }
                 }
 
                 Section("앱에서 기록 (source: app)") {

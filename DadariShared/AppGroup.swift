@@ -5,9 +5,23 @@ import Foundation
 enum AppGroup {
     static let identifier = "group.com.dadari.app"
 
-    /// App Group 컨테이너의 UserDefaults. 프로비저닝이 잘못돼 있으면 nil이 되므로
-    /// 호출부에서 실패를 감지할 수 있도록 옵셔널을 그대로 노출한다.
+    /// App Group 컨테이너 경로. 엔타이틀먼트가 실제로 적용됐는지 판단하는 신뢰할 수 있는 유일한 경로다.
+    ///
+    /// `UserDefaults(suiteName:)`는 엔타이틀먼트가 없어도 nil이 아닌 객체를 돌려주기 때문에
+    /// 연결 여부의 근거가 되지 못한다. 반면 `containerURL(forSecurityApplicationGroupIdentifier:)`는
+    /// 엔타이틀먼트가 없거나 프로비저닝 프로파일에 App Group이 빠져 있으면 nil을 반환한다.
+    static var containerURL: URL? {
+        FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: identifier)
+    }
+
+    static var isAvailable: Bool {
+        containerURL != nil
+    }
+
+    /// App Group 컨테이너의 UserDefaults. 컨테이너를 잡지 못하면 nil을 돌려줘서
+    /// 호출부가 "공유되는 척하는 저장소"를 쓰지 않도록 한다.
     static var sharedDefaults: UserDefaults? {
-        UserDefaults(suiteName: identifier)
+        guard isAvailable else { return nil }
+        return UserDefaults(suiteName: identifier)
     }
 }

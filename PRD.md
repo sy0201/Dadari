@@ -177,7 +177,7 @@ GitHub Actions를 사용한다. Xcode Cloud보다 설정 손이 더 가지만, �
 실제 워크플로우는 `.github/workflows/ci.yml`에 있다. 위 초안에서 아래 두 가지가 바뀌었다.
 
 - **러너/Xcode**: `macos-14` + Xcode 15.4 대신 `macos-15`(기본 Xcode 16.x)를 쓴다. `Dadari.xcodeproj`가
-  Xcode 16의 동기화 폴더 그룹(objectVersion 77)을 쓰기 때문에 Xcode 16 이상이 필요하고,
+  Xcode 16의 동기화 폴더 그룹을 쓰기 때문에 Xcode 16 이상이 필요하고,
   워크플로우가 버전을 먼저 확인한 뒤 미달이면 명확한 메시지로 실패한다.
 - **시뮬레이터 지정**: `name=iPhone 15`처럼 이름을 박아두면 러너 이미지가 갱신될 때 깨지므로,
   `xcrun simctl list devices available --json`에서 가장 최신 iOS의 iPhone을 골라 UDID로 지정한다.
