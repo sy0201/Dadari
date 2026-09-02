@@ -60,3 +60,9 @@ fastlane/report.xml
 fastlane/Preview.html
 fastlane/screenshots/**/*.png
 fastlane/test_output
+
+## Dadari
+DerivedData/
+*.xcresult
+.build/
+.DS_Store
