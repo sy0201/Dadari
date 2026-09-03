@@ -14,6 +14,9 @@ final class HealthKitWriterSpy: HealthKitWriting {
     /// 이 id를 가진 기록의 저장만 실패시킨다. 부분 실패 처리를 확인하는 용도.
     var failingRecordIDs: Set<UUID> = []
 
+    /// 설정하면 모든 삭제가 실패한다.
+    var deleteError: Error?
+
     func requestAuthorization() async throws {
         authorizationRequestCount += 1
         if let authorizationError { throw authorizationError }
@@ -27,6 +30,7 @@ final class HealthKitWriterSpy: HealthKitWriting {
     }
 
     func delete(_ record: PeriodRecordSnapshot) async throws {
+        if let deleteError { throw deleteError }
         deletedRecords.append(record)
     }
 }

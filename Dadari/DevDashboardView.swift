@@ -116,7 +116,7 @@ struct DevDashboardView: View {
                 }
                 .onDelete(perform: delete)
                 Button("전체 삭제", role: .destructive) {
-                    perform { try store.deleteAll() }
+                    delete(at: IndexSet(records.indices))
                 }
             }
         }
@@ -144,8 +144,14 @@ struct DevDashboardView: View {
 
     private func delete(at offsets: IndexSet) {
         let ids = offsets.map { records[$0].id }
-        perform {
-            for id in ids { try store.delete(id: id) }
+        Task {
+            // 저장소만 지우면 건강 앱에는 기록이 그대로 남는다. 코디네이터가 양쪽을 함께 지운다.
+            let results = await DadariEnvironment.makeHealthKitCoordinator().deleteRecords(ids: ids)
+            if let failure = results.values.compactMap(\.healthKitErrorDescription).first {
+                message = "앱에서는 지웠지만 건강 앱에서 지우지 못했어요.\n\n\(failure)"
+            }
+            WidgetCenter.shared.reloadAllTimelines()
+            reload()
         }
     }
 

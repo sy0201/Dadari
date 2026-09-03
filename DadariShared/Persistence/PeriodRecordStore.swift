@@ -149,21 +149,15 @@ final class PeriodRecordStore {
         }
     }
 
+    /// - Warning: 저장소만 지운다. HealthKit에 내보낸 기록이면 건강 앱에는 그대로 남는다.
+    ///   앱 화면에서 지울 때는 `HealthKitSyncCoordinator.deleteRecord(id:)`를 써야 한다.
+    ///   실기기 확인에서 이 경로를 직접 부르는 바람에 건강 앱에 기록이 남는 문제가 있었다.
     func delete(id: UUID) throws {
         try withContext { context in
             guard let record = try Self.fetchRecords(in: context).first(where: { $0.id == id }) else {
                 throw PeriodRecordError.recordNotFound
             }
             context.delete(record)
-            try context.save()
-        }
-    }
-
-    func deleteAll() throws {
-        try withContext { context in
-            for record in try Self.fetchRecords(in: context) {
-                context.delete(record)
-            }
             try context.save()
         }
     }

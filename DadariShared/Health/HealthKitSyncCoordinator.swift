@@ -25,6 +25,14 @@ struct HealthKitSyncCoordinator {
         static let skippedSummary = Summary(skipped: true)
     }
 
+    /// 삭제 결과. 앱에서 지운 기록을 HealthKit에서도 지웠는지 알려준다.
+    struct DeletionResult: Equatable {
+        /// HealthKit에서도 지웠는지. 내보낸 적이 없는 기록이면 false다(지울 게 없었다는 뜻).
+        var removedFromHealthKit = false
+        /// HealthKit 삭제가 실패한 경우의 사유. 로컬 삭제는 그래도 진행된다.
+        var healthKitErrorDescription: String?
+    }
+
     private let store: PeriodRecordStore
     private let writer: HealthKitWriting
 
@@ -61,6 +69,52 @@ struct HealthKitSyncCoordinator {
             }
         }
         return summary
+    }
+
+    /// 앱에서 기록을 지울 때 쓴다. HealthKit에 내보낸 적이 있으면 거기서도 지운다.
+    ///
+    /// 저장소만 지우면 건강 앱에는 기록이 그대로 남는다. 잠금화면이 주 입력 경로라
+    /// 오탭을 되돌리는 일이 잦은데(UX-설계 9번), 되돌려도 건강 앱에 남아 있으면
+    /// 삭제가 삭제로 동작하지 않는 셈이다.
+    ///
+    /// HealthKit 삭제가 실패해도 로컬 삭제는 진행한다. 사용자가 지우라고 한 것이므로
+    /// 앱에 남겨두는 쪽이 더 나쁘다. 대신 실패 사유를 돌려줘서 화면에 알릴 수 있게 한다.
+    @discardableResult
+    func deleteRecord(id: UUID) async throws -> DeletionResult {
+        guard let snapshot = try store.records().first(where: { $0.id == id }) else {
+            throw PeriodRecordError.recordNotFound
+        }
+
+        var result = DeletionResult()
+
+        // 내보낸 적이 없으면 HealthKit에는 지울 게 없다.
+        if snapshot.healthKitSyncedAt != nil, writer.isAvailable {
+            do {
+                try await writer.delete(snapshot)
+                result.removedFromHealthKit = true
+            } catch {
+                DadariLog.health.error(
+                    "HealthKit 삭제 실패: \(String(describing: error), privacy: .public)"
+                )
+                result.healthKitErrorDescription = (error as? LocalizedError)?.errorDescription
+                    ?? error.localizedDescription
+            }
+        }
+
+        try store.delete(id: id)
+        return result
+    }
+
+    /// 여러 건을 한 번에 지운다. 한 건이 실패해도 나머지는 계속 진행한다.
+    @discardableResult
+    func deleteRecords(ids: [UUID]) async -> [UUID: DeletionResult] {
+        var results: [UUID: DeletionResult] = [:]
+        for id in ids {
+            if let result = try? await deleteRecord(id: id) {
+                results[id] = result
+            }
+        }
+        return results
     }
 
     /// 사용자가 설정에서 연동을 켤 때 호출한다. 권한을 받고 곧바로 밀린 기록을 내보낸다.

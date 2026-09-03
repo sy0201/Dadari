@@ -210,6 +210,71 @@ final class HealthKitSyncCoordinatorTests: XCTestCase {
         )
     }
 
+    // MARK: - 삭제
+
+    func test_앱에서_지운_기록은_HealthKit에서도_지워진다() async throws {
+        // 실기기 확인에서 발견한 문제. 저장소만 지우면 건강 앱에는 기록이 그대로 남았다.
+        try seedRecord()
+        try await coordinator.enableAndSync(now: TestSupport.date(2026, 9, 2))
+        let record = try XCTUnwrap(store.records().first)
+
+        let result = try await coordinator.deleteRecord(id: record.id)
+
+        XCTAssertTrue(result.removedFromHealthKit)
+        XCTAssertEqual(spy.deletedRecords.map(\.id), [record.id])
+        XCTAssertTrue(try store.records().isEmpty)
+    }
+
+    func test_내보낸_적_없는_기록을_지울_때는_HealthKit을_건드리지_않는다() async throws {
+        try seedRecord()
+        let record = try XCTUnwrap(store.records().first)
+
+        let result = try await coordinator.deleteRecord(id: record.id)
+
+        XCTAssertFalse(result.removedFromHealthKit)
+        XCTAssertTrue(spy.deletedRecords.isEmpty)
+        XCTAssertTrue(try store.records().isEmpty)
+    }
+
+    func test_HealthKit_삭제가_실패해도_앱에서는_지운다() async throws {
+        // 사용자가 지우라고 한 것이므로 앱에 남겨두는 쪽이 더 나쁘다. 대신 사유를 알린다.
+        try seedRecord()
+        try await coordinator.enableAndSync(now: TestSupport.date(2026, 9, 2))
+        let record = try XCTUnwrap(store.records().first)
+        spy.deleteError = HealthKitError.deleteFailed("테스트 실패 주입")
+
+        let result = try await coordinator.deleteRecord(id: record.id)
+
+        XCTAssertFalse(result.removedFromHealthKit)
+        XCTAssertEqual(
+            result.healthKitErrorDescription,
+            HealthKitError.deleteFailed("테스트 실패 주입").errorDescription
+        )
+        XCTAssertTrue(try store.records().isEmpty, "HealthKit 실패와 무관하게 로컬은 지워야 한다")
+    }
+
+    func test_여러_건을_지울_때_한_건이_실패해도_나머지는_지운다() async throws {
+        try seedRecord(day: 1)
+        try seedRecord(day: 29)
+        try await coordinator.enableAndSync(now: TestSupport.date(2026, 9, 30))
+        let ids = try store.records().map(\.id)
+
+        spy.deleteError = HealthKitError.deleteFailed("테스트 실패 주입")
+        let results = await coordinator.deleteRecords(ids: ids)
+
+        XCTAssertEqual(results.count, 2)
+        XCTAssertTrue(try store.records().isEmpty)
+    }
+
+    func test_없는_기록을_지우면_오류다() async throws {
+        do {
+            _ = try await coordinator.deleteRecord(id: UUID())
+            XCTFail("오류가 나야 한다")
+        } catch {
+            XCTAssertEqual(error as? PeriodRecordError, .recordNotFound)
+        }
+    }
+
     func test_내보낼_기록이_없으면_시도_자체를_하지_않는다() async throws {
         try store.updateSettings { $0.healthKitSyncEnabled = true }
 
