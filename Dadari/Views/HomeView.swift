@@ -1,4 +1,5 @@
 import SwiftUI
+import WidgetKit
 
 /// 홈 화면. 목업(ui-mockup.html)의 구성을 그대로 옮겼다.
 ///
@@ -62,6 +63,11 @@ struct HomeView: View {
             // 잠금화면 위젯에서 기록하고 앱으로 돌아왔을 때 최신 상태를 다시 읽는다.
             guard phase == .active else { return }
             model.reload()
+            // 위젯이 옛 타임라인을 들고 있는 경우를 줄인다. 앱을 새로 설치한 직후에는
+            // 위젯이 이전 빌드 기준으로 남아 있을 수 있어서, 앱이 앞으로 나올 때마다
+            // 갱신을 요청한다. 익스텐션 자체가 옛 바이너리에 물린 경우는 이걸로도
+            // 풀리지 않으므로, 그때는 위젯을 지웠다 다시 추가해야 한다(SPIKE.md).
+            WidgetCenter.shared.reloadAllTimelines()
             Task { await DadariEnvironment.makeHealthKitCoordinator().syncPending() }
         }
         .alert("알림", isPresented: Binding(
