@@ -9,16 +9,23 @@ final class HomeViewModel {
     private(set) var settings = CycleSettingsSnapshot()
     private(set) var prediction: CyclePrediction?
 
-    var selectedDate = Calendar.current.startOfDay(for: Date())
+    var selectedDate: Date
     var isCalendarExpanded = false
     var isPhaseGuidePresented = false
     var message: String?
 
     private let calendarModel: CycleCalendar
+    /// 날짜 계산은 전부 이 달력으로 한다.
+    ///
+    /// `Calendar.current`를 섞어 쓰면 주입한 달력과 타임존이 다를 때 날짜가 하루씩
+    /// 어긋난다. 개발 기기와 CI 러너의 타임존이 달라 CI에서만 깨지는 식이라 찾기 어렵다.
+    private let calendar: Calendar
     private var store: PeriodRecordStore { DadariEnvironment.recordStore }
 
     init(calendar: Calendar = .current) {
+        self.calendar = calendar
         self.calendarModel = CycleCalendar(calendar: calendar)
+        self.selectedDate = calendar.startOfDay(for: Date())
         #if DEBUG
         // 시뮬레이터에서 화면 상태별로 스크린샷을 찍기 위한 실행 인자.
         // 탭 없이도 월간 그리드와 단계 안내를 열어 목업과 대조할 수 있다.
@@ -92,7 +99,7 @@ final class HomeViewModel {
     var periodLength: Int {
         let lengths = records.compactMap { record -> Int? in
             guard let end = record.endDate else { return nil }
-            let days = Calendar.current.dateComponents([.day], from: record.startDate, to: end).day
+            let days = calendar.dateComponents([.day], from: record.startDate, to: end).day
             return days.map { $0 + 1 }
         }
         guard !lengths.isEmpty else { return settings.estimatedPeriodLength }
@@ -100,7 +107,6 @@ final class HomeViewModel {
     }
 
     private var loggedDayNumber: Int {
-        let calendar = Calendar.current
         let day = calendar.startOfDay(for: selectedDate)
         guard let record = records.first(where: { calendar.startOfDay(for: $0.startDate) <= day }) else {
             return 1
@@ -115,7 +121,6 @@ final class HomeViewModel {
 
     /// 선택한 날짜에 이미 기록이 있는지. 있으면 카드가 수정 경로를 안내한다.
     var recordForSelectedDate: PeriodRecordSnapshot? {
-        let calendar = Calendar.current
         let day = calendar.startOfDay(for: selectedDate)
         return records.first { record in
             let start = calendar.startOfDay(for: record.startDate)
@@ -128,13 +133,12 @@ final class HomeViewModel {
 
     /// 선택한 날짜가 오늘인지. 카드 문구를 바꾸는 데 쓴다.
     var isSelectedDateToday: Bool {
-        Calendar.current.isDateInToday(selectedDate)
+        calendar.isDateInToday(selectedDate)
     }
 
     /// 선택한 날짜가 미래인지. 미래는 기록할 수 없다(UX-설계 9번).
     func isSelectedDateInFuture(now: Date = Date()) -> Bool {
-        let calendar = Calendar.current
-        return calendar.startOfDay(for: selectedDate) > calendar.startOfDay(for: now)
+        calendar.startOfDay(for: selectedDate) > calendar.startOfDay(for: now)
     }
 
     /// 컬러 팝 카드의 기록 버튼.
@@ -145,7 +149,7 @@ final class HomeViewModel {
         // 다른 화면이나 위젯에서 기록이 바뀌었을 수 있으므로 최신 상태를 먼저 확인한다.
         reload(now: now)
 
-        let target = Calendar.current.startOfDay(for: selectedDate)
+        let target = calendar.startOfDay(for: selectedDate)
 
         do {
             let outcome: PeriodRecordOutcome

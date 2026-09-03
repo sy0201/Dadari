@@ -192,6 +192,33 @@ final class HomeViewModelTests: XCTestCase {
         XCTAssertNotEqual(model.kind(for: today), .loggedPeriod)
     }
 
+    // MARK: - 타임존
+
+    func test_주입한_달력의_타임존을_따른다() throws {
+        // CI(UTC)에서만 날짜가 하루 어긋나는 문제가 있었다. 모델이 주입받은 달력 대신
+        // Calendar.current를 섞어 쓴 탓이었다. 호스트 타임존과 무관하게 깨지도록,
+        // 개발 기기와 확실히 다른 타임존을 주입해 확인한다.
+        var farAway = Calendar(identifier: .gregorian)
+        farAway.timeZone = TimeZone(identifier: "Pacific/Pago_Pago")!   // UTC-11
+
+        DadariEnvironment.recordStore = PeriodRecordStore(
+            container: container,
+            calendar: farAway
+        )
+        let model = HomeViewModel(calendar: farAway)
+        let instant = TestSupport.date(2026, 9, 3, hour: 9)
+        model.selectedDate = farAway.startOfDay(for: instant)
+
+        model.recordSelectedDate(now: instant)
+
+        let recorded = try XCTUnwrap(store.records().first?.startDate)
+        XCTAssertEqual(
+            recorded,
+            farAway.startOfDay(for: instant),
+            "Calendar.current가 섞이면 여기서 하루가 어긋난다"
+        )
+    }
+
     func test_기록이_없으면_예측도_비어_있다() {
         model.reload(now: today)
 
