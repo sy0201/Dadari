@@ -168,6 +168,8 @@ final class HealthKitSyncCoordinatorTests: XCTestCase {
     func test_연동을_켜면_권한을_받고_밀린_기록을_내보낸다() async throws {
         try seedRecord(day: 1)
         try seedRecord(day: 29)
+        spy.shareAuthorization = .notDetermined
+        spy.authorizationResult = .authorized
 
         let summary = try await coordinator.enableAndSync(now: TestSupport.date(2026, 9, 30))
 
@@ -241,6 +243,65 @@ final class HealthKitSyncCoordinatorTests: XCTestCase {
             summary.lastErrorDescription,
             HealthKitError.saveFailed("테스트 실패 주입").errorDescription
         )
+    }
+
+    // MARK: - 권한
+
+    func test_권한을_거부하면_연동이_켜지지_않는다() async throws {
+        // requestAuthorization은 사용자가 거부해도 성공으로 돌아온다. 그 성공만 보고 켜면
+        // 권한이 없는데 "켜짐"이 되어 계속 실패만 하고 사용자는 끄는 방법도 알 수 없게 된다.
+        try seedRecord()
+        spy.shareAuthorization = .notDetermined
+        spy.authorizationResult = .denied
+
+        do {
+            _ = try await coordinator.enableAndSync()
+            XCTFail("거부됐으면 오류가 나야 한다")
+        } catch {
+            XCTAssertEqual(error as? HealthKitError, .sharingDenied)
+        }
+
+        XCTAssertFalse(try store.settings().healthKitSyncEnabled, "켜진 채로 남으면 안 된다")
+        XCTAssertTrue(spy.savedRecords.isEmpty)
+    }
+
+    func test_이미_거부된_상태에서는_권한_시트를_다시_띄우지_않는다() async throws {
+        // 한 번 거부되면 다시 요청해도 시스템 시트가 뜨지 않는다. 헛되이 호출하는 대신
+        // 설정으로 안내하는 오류를 던진다.
+        spy.shareAuthorization = .denied
+
+        do {
+            _ = try await coordinator.enableAndSync()
+            XCTFail("거부됐으면 오류가 나야 한다")
+        } catch {
+            XCTAssertEqual(error as? HealthKitError, .sharingDenied)
+        }
+
+        XCTAssertEqual(spy.authorizationRequestCount, 0)
+    }
+
+    func test_연동은_켜져_있는데_권한이_없으면_사유와_함께_건너뛴다() async throws {
+        try seedRecord()
+        try store.updateSettings { $0.healthKitSyncEnabled = true }
+        spy.shareAuthorization = .denied
+
+        let summary = await coordinator.syncPending()
+
+        XCTAssertTrue(summary.skipped)
+        XCTAssertEqual(summary.lastErrorDescription, HealthKitError.sharingDenied.errorDescription)
+        XCTAssertTrue(spy.savedRecords.isEmpty, "권한이 없으면 기록마다 실패를 쌓지 않는다")
+    }
+
+    func test_연동을_끌_수_있다() async throws {
+        try seedRecord()
+        spy.shareAuthorization = .notDetermined
+        spy.authorizationResult = .authorized
+        try await coordinator.enableAndSync()
+        XCTAssertTrue(try store.settings().healthKitSyncEnabled)
+
+        try coordinator.disableSync()
+
+        XCTAssertFalse(try store.settings().healthKitSyncEnabled)
     }
 
     // MARK: - 삭제

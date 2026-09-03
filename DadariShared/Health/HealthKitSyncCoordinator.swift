@@ -41,6 +41,10 @@ struct HealthKitSyncCoordinator {
         self.writer = writer
     }
 
+    var isHealthKitAvailable: Bool { writer.isAvailable }
+
+    var shareAuthorization: HealthKitShareAuthorization { writer.shareAuthorization }
+
     /// 설정에서 HealthKit 연동이 켜져 있을 때만 동작한다.
     @discardableResult
     func syncPending(now: Date = Date()) async -> Summary {
@@ -48,6 +52,13 @@ struct HealthKitSyncCoordinator {
 
         let syncEnabled = (try? store.settings().healthKitSyncEnabled) ?? false
         guard syncEnabled else { return .skippedSummary }
+
+        // 권한이 없으면 기록마다 실패를 쌓는 대신 한 번에 사유를 알린다.
+        guard writer.shareAuthorization == .authorized else {
+            var summary = Summary.skippedSummary
+            summary.lastErrorDescription = HealthKitError.sharingDenied.errorDescription
+            return summary
+        }
 
         guard let pending = try? store.recordsNeedingHealthKitSync(), !pending.isEmpty else {
             return Summary()
@@ -121,8 +132,26 @@ struct HealthKitSyncCoordinator {
     @discardableResult
     func enableAndSync(now: Date = Date()) async throws -> Summary {
         guard writer.isAvailable else { throw HealthKitError.unavailable }
-        try await writer.requestAuthorization()
+
+        // 아직 물어본 적이 없을 때만 시트가 뜬다. 이미 거부된 상태면 아무 일도 일어나지 않는다.
+        if writer.shareAuthorization == .notDetermined {
+            try await writer.requestAuthorization()
+        }
+
+        // requestAuthorization은 사용자가 거부해도 성공으로 돌아온다.
+        // 그 성공만 보고 연동을 켜면, 권한이 없는데 "켜짐"이 되어 계속 실패만 하고
+        // 사용자는 이유도 끄는 방법도 알 수 없게 된다. 실제 상태를 확인하고 켠다.
+        guard writer.shareAuthorization == .authorized else {
+            try store.updateSettings { $0.healthKitSyncEnabled = false }
+            throw HealthKitError.sharingDenied
+        }
+
         try store.updateSettings { $0.healthKitSyncEnabled = true }
         return await syncPending(now: now)
+    }
+
+    /// 사용자가 연동을 끌 때. 이미 내보낸 기록은 건강 앱에 그대로 둔다.
+    func disableSync() throws {
+        try store.updateSettings { $0.healthKitSyncEnabled = false }
     }
 }

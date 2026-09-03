@@ -8,6 +8,7 @@ import WidgetKit
 /// 동작하는지 확인하는 창구 역할을 한다.
 struct DevDashboardView: View {
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.openURL) private var openURL
 
     @State private var records: [PeriodRecordSnapshot] = []
     @State private var settings = CycleSettingsSnapshot()
@@ -91,12 +92,46 @@ struct DevDashboardView: View {
         }
     }
 
+    @ViewBuilder
     private var healthKitSection: some View {
         Section("HealthKit") {
-            LabeledContent("연동", value: settings.healthKitSyncEnabled ? "켜짐" : "꺼짐")
-            Button(settings.healthKitSyncEnabled ? "지금 동기화" : "연동 켜고 동기화") {
-                Task { await enableHealthKit() }
+            LabeledContent("연동 설정", value: settings.healthKitSyncEnabled ? "켜짐" : "꺼짐")
+            LabeledContent("쓰기 권한") {
+                Text(authorizationText)
+                    .foregroundStyle(authorization == .authorized ? .green : .red)
             }
+
+            if authorization == .denied {
+                // 앱에서 다시 물어볼 수 없다. 한 번 거부되면 시스템 시트가 뜨지 않는다.
+                Text("앱에서는 다시 물어볼 수 없어요. 건강 앱 > 프로필 > 앱 및 서비스 > 다달이에서 '월경'을 켜주세요.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Button("건강 앱 열기") { openHealthApp() }
+            }
+
+            if settings.healthKitSyncEnabled {
+                Button("지금 동기화") { Task { await enableHealthKit() } }
+                Button("연동 끄기", role: .destructive) { disableHealthKit() }
+            } else {
+                Button("연동 켜고 동기화") { Task { await enableHealthKit() } }
+            }
+        }
+    }
+
+    private var coordinator: HealthKitSyncCoordinator {
+        DadariEnvironment.makeHealthKitCoordinator()
+    }
+
+    private var authorization: HealthKitShareAuthorization {
+        coordinator.shareAuthorization
+    }
+
+    private var authorizationText: String {
+        guard coordinator.isHealthKitAvailable else { return "사용 불가" }
+        switch authorization {
+        case .authorized: return "허용됨"
+        case .denied: return "거부됨"
+        case .notDetermined: return "미결정"
         }
     }
 
@@ -157,12 +192,26 @@ struct DevDashboardView: View {
 
     private func enableHealthKit() async {
         do {
-            let summary = try await DadariEnvironment.makeHealthKitCoordinator().enableAndSync()
+            let summary = try await coordinator.enableAndSync()
             message = summaryMessage(summary)
         } catch {
             message = error.localizedDescription
         }
         reload()
+    }
+
+    private func disableHealthKit() {
+        do {
+            try coordinator.disableSync()
+            reload()
+        } catch {
+            message = error.localizedDescription
+        }
+    }
+
+    private func openHealthApp() {
+        guard let url = URL(string: "x-apple-health://") else { return }
+        openURL(url)
     }
 
     private func syncHealthKit() async {
@@ -172,6 +221,8 @@ struct DevDashboardView: View {
 
     private func summaryMessage(_ summary: HealthKitSyncCoordinator.Summary) -> String {
         if summary.skipped {
+            // 권한 문제로 건너뛴 경우에는 사유가 함께 온다.
+            if let reason = summary.lastErrorDescription { return reason }
             return "이 기기에서는 HealthKit을 쓸 수 없어요. 실기기에서 확인해 주세요."
         }
         if summary.attempted == 0 {

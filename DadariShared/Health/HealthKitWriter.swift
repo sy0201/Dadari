@@ -24,6 +24,16 @@ struct HealthKitWriter: HealthKitWriting {
         HKHealthStore.isHealthDataAvailable()
     }
 
+    var shareAuthorization: HealthKitShareAuthorization {
+        guard isAvailable else { return .notDetermined }
+        switch store.authorizationStatus(for: menstrualFlowType) {
+        case .sharingAuthorized: return .authorized
+        case .sharingDenied: return .denied
+        case .notDetermined: return .notDetermined
+        @unknown default: return .notDetermined
+        }
+    }
+
     func requestAuthorization() async throws {
         guard isAvailable else { throw HealthKitError.unavailable }
         do {
