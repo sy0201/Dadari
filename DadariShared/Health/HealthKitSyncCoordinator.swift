@@ -15,6 +15,13 @@ struct HealthKitSyncCoordinator {
         /// HealthKit을 쓸 수 없거나 설정에서 꺼져 있어 아무것도 하지 않은 경우.
         var skipped = false
 
+        /// 마지막으로 발생한 실패 사유.
+        ///
+        /// HealthKit은 사용자가 쓰기 권한을 거부해도 `requestAuthorization`이 성공으로 돌아온다.
+        /// 건강 정보 노출을 막기 위한 설계인데, 그래서 실제 저장을 시도해 봐야 거부를 알 수 있다.
+        /// 실기기 확인 때 원인을 눈으로 볼 수 있도록 사유를 들고 온다.
+        var lastErrorDescription: String?
+
         static let skippedSummary = Summary(skipped: true)
     }
 
@@ -49,6 +56,8 @@ struct HealthKitSyncCoordinator {
                 // 동기화되지 않은 기록은 다음 실행에서 다시 대상이 된다.
                 DadariLog.health.error("HealthKit 동기화 실패: \(String(describing: error), privacy: .public)")
                 summary.failed += 1
+                summary.lastErrorDescription = (error as? LocalizedError)?.errorDescription
+                    ?? error.localizedDescription
             }
         }
         return summary

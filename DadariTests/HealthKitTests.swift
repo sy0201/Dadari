@@ -192,4 +192,30 @@ final class HealthKitSyncCoordinatorTests: XCTestCase {
         // 실패한 기록은 다음 실행에서 다시 대상이 된다.
         XCTAssertEqual(try store.recordsNeedingHealthKitSync().map(\.id), [first.id])
     }
+
+    func test_실패_사유를_요약에_담아_화면에서_볼_수_있다() async throws {
+        // HealthKit은 쓰기 권한을 거부해도 requestAuthorization이 성공으로 돌아온다.
+        // 실제 저장을 시도해야 거부를 알 수 있으므로, 사유가 화면까지 전달돼야 한다.
+        try seedRecord()
+        try store.updateSettings { $0.healthKitSyncEnabled = true }
+        let record = try XCTUnwrap(store.recordsNeedingHealthKitSync().first)
+        spy.failingRecordIDs = [record.id]
+
+        let summary = await coordinator.syncPending(now: TestSupport.date(2026, 9, 2))
+
+        XCTAssertEqual(summary.failed, 1)
+        XCTAssertEqual(
+            summary.lastErrorDescription,
+            HealthKitError.saveFailed("테스트 실패 주입").errorDescription
+        )
+    }
+
+    func test_내보낼_기록이_없으면_시도_자체를_하지_않는다() async throws {
+        try store.updateSettings { $0.healthKitSyncEnabled = true }
+
+        let summary = await coordinator.syncPending()
+
+        XCTAssertFalse(summary.skipped)
+        XCTAssertEqual(summary.attempted, 0)
+    }
 }

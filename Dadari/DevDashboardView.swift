@@ -152,9 +152,7 @@ struct DevDashboardView: View {
     private func enableHealthKit() async {
         do {
             let summary = try await DadariEnvironment.makeHealthKitCoordinator().enableAndSync()
-            message = summary.skipped
-                ? "이 기기에서는 HealthKit을 쓸 수 없어요. 실기기에서 확인해 주세요."
-                : "동기화 완료: \(summary.synced)건 성공, \(summary.failed)건 실패"
+            message = summaryMessage(summary)
         } catch {
             message = error.localizedDescription
         }
@@ -164,6 +162,21 @@ struct DevDashboardView: View {
     private func syncHealthKit() async {
         await DadariEnvironment.makeHealthKitCoordinator().syncPending()
         reload()
+    }
+
+    private func summaryMessage(_ summary: HealthKitSyncCoordinator.Summary) -> String {
+        if summary.skipped {
+            return "이 기기에서는 HealthKit을 쓸 수 없어요. 실기기에서 확인해 주세요."
+        }
+        if summary.attempted == 0 {
+            return "내보낼 기록이 없어요. 먼저 기록을 남겨 주세요."
+        }
+        var text = "동기화 \(summary.synced)건 성공, \(summary.failed)건 실패"
+        if let reason = summary.lastErrorDescription {
+            // 권한 거부는 여기서만 드러난다. requestAuthorization은 거부돼도 성공으로 돌아온다.
+            text += "\n\n마지막 실패 사유: \(reason)"
+        }
+        return text
     }
 
     /// 저장소 호출을 한 곳에서 감싸 오류를 화면에 띄우고 위젯을 갱신한다.
