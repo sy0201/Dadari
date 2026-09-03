@@ -12,7 +12,10 @@ struct DadariLockScreenWidget: Widget {
 
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: Self.kind, provider: DadariTimelineProvider()) { entry in
+            // containerBackground는 위젯 루트 콘텐츠에 한 번만 붙인다.
+            // 가족별 뷰 안쪽에 흩어 놓으면 시스템이 컨테이너를 인식하지 못할 수 있다.
             DadariWidgetView(entry: entry)
+                .containerBackground(DadariColor.background, for: .widget)
         }
         .configurationDisplayName("다달이")
         .description("잠금화면에서 탭 한 번으로 시작일과 종료일을 기록해요.")
@@ -63,7 +66,6 @@ struct DadariWidgetView: View {
             }
         }
         .buttonStyle(.plain)
-        .containerBackground(.clear, for: .widget)
         .accessibilityLabel(entry.accessibilityLabel)
     }
 
@@ -90,7 +92,6 @@ struct DadariWidgetView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .containerBackground(.clear, for: .widget)
         .accessibilityLabel(entry.accessibilityLabel)
     }
 
@@ -136,7 +137,6 @@ struct DadariWidgetView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-        .containerBackground(DadariColor.background, for: .widget)
         .accessibilityLabel(entry.accessibilityLabel)
     }
 

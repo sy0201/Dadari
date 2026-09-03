@@ -8,6 +8,7 @@ struct HomeView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var model = HomeViewModel()
     @State private var isDevDashboardPresented = false
+    @State private var editingRecord: PeriodRecordSnapshot?
 
     var body: some View {
         ZStack {
@@ -26,9 +27,15 @@ struct HomeView: View {
 
                     moonHero
 
-                    RecordCardView(hasOngoingPeriod: model.hasOngoingPeriod) {
-                        model.recordToday()
-                    }
+                    RecordCardView(
+                        selectedDate: model.selectedDate,
+                        isToday: model.isSelectedDateToday,
+                        isFuture: model.isSelectedDateInFuture(),
+                        hasOngoingPeriod: model.hasOngoingPeriod,
+                        existingRecord: model.recordForSelectedDate,
+                        onRecord: { model.recordSelectedDate() },
+                        onEdit: { editingRecord = $0 }
+                    )
                     .padding(.top, 8)
                     .padding(.bottom, 20)
 
@@ -39,8 +46,8 @@ struct HomeView: View {
                     )
                     .padding(.bottom, 20)
 
-                    RecentRecordsView(records: model.records) { _ in
-                        // 기록 수정/삭제 화면은 10~11주차 작업이다(PRD 10번).
+                    RecentRecordsView(records: model.records) { record in
+                        editingRecord = record
                     }
                 }
                 .padding(.horizontal, 20)
@@ -64,6 +71,15 @@ struct HomeView: View {
             Button("확인") { model.message = nil }
         } message: {
             Text(model.message ?? "")
+        }
+        .sheet(item: $editingRecord) { record in
+            RecordEditorView(
+                record: record,
+                onSave: { start, end, flow in
+                    model.update(record: record, startDate: start, endDate: end, flow: flow)
+                },
+                onDelete: { await model.delete(record: record) }
+            )
         }
         .sheet(isPresented: $isDevDashboardPresented) {
             // 대시보드에서 기록을 지우고 돌아오면 홈이 옛 데이터를 그대로 들고 있게 된다.

@@ -113,31 +113,102 @@ final class HomeViewModel {
 
     // MARK: - 쓰기
 
-    /// 컬러 팝 카드의 기록 버튼. 진행 중인 주기가 있으면 종료를, 없으면 시작을 남긴다.
-    func recordToday(now: Date = Date()) {
-        // 다른 화면에서 기록이 지워졌을 수 있으므로 최신 상태를 먼저 확인한다.
-        // 오래된 상태로 판단하면 종료할 기록이 없는데 종료를 시도하는 일이 생긴다.
+    /// 선택한 날짜에 이미 기록이 있는지. 있으면 카드가 수정 경로를 안내한다.
+    var recordForSelectedDate: PeriodRecordSnapshot? {
+        let calendar = Calendar.current
+        let day = calendar.startOfDay(for: selectedDate)
+        return records.first { record in
+            let start = calendar.startOfDay(for: record.startDate)
+            guard let end = record.endDate.map({ calendar.startOfDay(for: $0) }) else {
+                return start == day
+            }
+            return day >= start && day <= end
+        }
+    }
+
+    /// 선택한 날짜가 오늘인지. 카드 문구를 바꾸는 데 쓴다.
+    var isSelectedDateToday: Bool {
+        Calendar.current.isDateInToday(selectedDate)
+    }
+
+    /// 선택한 날짜가 미래인지. 미래는 기록할 수 없다(UX-설계 9번).
+    func isSelectedDateInFuture(now: Date = Date()) -> Bool {
+        let calendar = Calendar.current
+        return calendar.startOfDay(for: selectedDate) > calendar.startOfDay(for: now)
+    }
+
+    /// 컬러 팝 카드의 기록 버튼.
+    ///
+    /// **선택한 날짜**에 기록한다. 오늘이 아닌 날짜를 고른 상태면 그 날짜로 남는다.
+    /// 잠금화면 위젯은 오늘만 기록하고, 다른 날짜는 앱에서 고르는 구조다(PRD 4.1).
+    func recordSelectedDate(now: Date = Date()) {
+        // 다른 화면이나 위젯에서 기록이 바뀌었을 수 있으므로 최신 상태를 먼저 확인한다.
         reload(now: now)
+
+        let target = Calendar.current.startOfDay(for: selectedDate)
 
         do {
             let outcome: PeriodRecordOutcome
             if hasOngoingPeriod {
-                outcome = try store.recordPeriodEnd(on: now, now: now, source: .app)
+                outcome = try store.recordPeriodEnd(on: target, now: now, source: .app)
             } else {
-                outcome = try store.recordPeriodStart(on: now, now: now, source: .app)
+                outcome = try store.recordPeriodStart(on: target, now: now, source: .app)
             }
 
             if !outcome.isNewRecord {
                 // 같은 날 같은 종류는 한 번만 저장된다. 아무 일도 일어나지 않은 것처럼
                 // 보이지 않도록 이유를 알린다.
-                message = "오늘은 이미 기록돼 있어요."
+                message = "이미 기록된 날짜예요. 고치려면 최근 기록에서 눌러 주세요."
             }
 
             WidgetCenter.shared.reloadAllTimelines()
-            selectedDate = Calendar.current.startOfDay(for: now)
             reload(now: now)
         } catch {
             message = error.localizedDescription
+        }
+    }
+
+    // MARK: - 수정 / 삭제
+
+    @discardableResult
+    func update(
+        record: PeriodRecordSnapshot,
+        startDate: Date,
+        endDate: Date?,
+        flow: FlowLevel?,
+        now: Date = Date()
+    ) -> Bool {
+        do {
+            try store.update(
+                id: record.id,
+                startDate: startDate,
+                endDate: endDate,
+                flow: flow,
+                now: now
+            )
+            WidgetCenter.shared.reloadAllTimelines()
+            reload(now: now)
+            return true
+        } catch {
+            message = error.localizedDescription
+            return false
+        }
+    }
+
+    /// 삭제는 반드시 코디네이터를 거친다. 저장소만 지우면 건강 앱에 기록이 그대로 남는다.
+    func delete(record: PeriodRecordSnapshot, now: Date = Date()) async -> Bool {
+        do {
+            let result = try await DadariEnvironment.makeHealthKitCoordinator()
+                .deleteRecord(id: record.id)
+            if let reason = result.healthKitErrorDescription {
+                message = "앱에서는 지웠지만 건강 앱에서 지우지 못했어요.\n\n\(reason)"
+            }
+            WidgetCenter.shared.reloadAllTimelines()
+            reload(now: now)
+            return true
+        } catch {
+            message = error.localizedDescription
+            return false
         }
     }
 }
