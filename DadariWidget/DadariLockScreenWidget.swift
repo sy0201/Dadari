@@ -4,18 +4,21 @@ import WidgetKit
 
 /// 잠금화면 위젯. 이 앱의 메인 UX다(PRD 5.1).
 ///
-/// 디자인은 PRD 10번 일정상 5~8주차 작업이라 아직 붙이지 않았다.
-/// 지금은 1주차에 검증한 배선 위에 2주차의 예측 결과를 얹어 놓은 상태다.
+/// 잠금화면 계열(`accessory*`)은 시스템이 단색으로 렌더링해서 색이 그대로 나오지 않는다.
+/// 그래서 색이 아니라 **형태**로 정보를 전한다. 문페이즈 원의 차오른 정도가 주기 위치를,
+/// 큰 숫자가 D-day를 나타낸다. 홈 화면용 `systemSmall`에서는 목업의 듀오톤을 그대로 쓴다.
 struct DadariLockScreenWidget: Widget {
     static let kind = "DadariLockScreenWidget"
 
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: Self.kind, provider: DadariTimelineProvider()) { entry in
+            // containerBackground는 위젯 루트 콘텐츠에 한 번만 붙인다.
+            // 가족별 뷰 안쪽에 흩어 놓으면 시스템이 컨테이너를 인식하지 못할 수 있다.
             DadariWidgetView(entry: entry)
-                .containerBackground(.fill.tertiary, for: .widget)
+                .containerBackground(DadariColor.background, for: .widget)
         }
         .configurationDisplayName("다달이")
-        .description("잠금화면에서 바로 시작일/종료일을 기록합니다.")
+        .description("잠금화면에서 탭 한 번으로 시작일과 종료일을 기록해요.")
         .supportedFamilies([.accessoryRectangular, .accessoryCircular, .systemSmall])
     }
 }
@@ -27,66 +30,134 @@ struct DadariWidgetView: View {
     var body: some View {
         switch family {
         case .accessoryCircular:
-            Button(intent: RecordPeriodStartIntent()) {
-                Image(systemName: "drop.fill")
-            }
-            .buttonStyle(.plain)
-
+            circular
         case .accessoryRectangular:
-            VStack(alignment: .leading, spacing: 2) {
-                Text(statusText)
-                    .font(.caption2)
-                    .lineLimit(1)
-                HStack(spacing: 6) {
-                    startButton
-                    endButton
-                }
-            }
-
+            rectangular
         default:
-            VStack(spacing: 10) {
-                Text(statusText)
-                    .font(.caption)
-                    .multilineTextAlignment(.center)
-                startButton
-                endButton
+            small
+        }
+    }
+
+    // MARK: - 잠금화면: 원형
+
+    /// 원형은 버튼 하나만 들어간다. 진행 중이면 종료를, 아니면 시작을 기록한다.
+    @ViewBuilder
+    private var circular: some View {
+        if entry.hasOngoingPeriod {
+            circularButton(intent: RecordIntents.end)
+        } else {
+            circularButton(intent: RecordIntents.start)
+        }
+    }
+
+    private func circularButton(intent: some AppIntent) -> some View {
+        Button(intent: intent) {
+            ZStack {
+                AccessoryWidgetBackground()
+                MoonPhaseView(
+                    fullness: entry.moonFullness,
+                    diameter: 44,
+                    tint: .white.opacity(0.35),
+                    shadow: .clear
+                )
+                Text(entry.compactStatus)
+                    .font(.system(size: 15, weight: .semibold, design: .rounded))
+                    .minimumScaleFactor(0.6)
             }
-            .padding(4)
         }
+        .buttonStyle(.plain)
+        .accessibilityLabel(entry.accessibilityLabel)
     }
 
-    private var startButton: some View {
-        Button(intent: RecordPeriodStartIntent()) {
-            Text("시작").font(.caption2)
+    // MARK: - 잠금화면: 가로형
+
+    private var rectangular: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            HStack(spacing: 5) {
+                MoonPhaseView(
+                    fullness: entry.moonFullness,
+                    diameter: 14,
+                    tint: .white.opacity(0.9),
+                    shadow: .clear
+                )
+                Text(entry.headline)
+                    .font(.system(size: 15, weight: .semibold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+            }
+
+            HStack(spacing: 5) {
+                intentButton("시작", intent: RecordIntents.start)
+                intentButton("종료", intent: RecordIntents.end)
+            }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityLabel(entry.accessibilityLabel)
     }
 
-    private var endButton: some View {
-        Button(intent: RecordPeriodEndIntent()) {
-            Text("종료").font(.caption2)
+    private func intentButton(_ title: String, intent: some AppIntent) -> some View {
+        Button(intent: intent) {
+            Text(title)
+                .font(.system(size: 12, weight: .semibold))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 2)
+                .background(
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .fill(.white.opacity(0.22))
+                )
         }
+        .buttonStyle(.plain)
     }
 
-    /// App Group을 못 잡으면 위젯이 자기 로컬 저장소에 쓰게 되고, 그러면 앱에서는 기록이 안 보인다.
-    /// 잠금화면에서 바로 구분할 수 있게 표시한다(SPIKE.md).
-    private var statusText: String {
-        let prefix = entry.isUsingSharedContainer ? "" : "⚠︎ 로컬 "
-        return prefix + predictionText
+    // MARK: - 홈 화면: 정사각
+
+    /// 홈 화면에서는 색이 그대로 나오므로 목업의 컬러 팝 카드 톤을 따른다.
+    private var small: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            MoonPhaseView(fullness: entry.moonFullness, diameter: 34)
+                .padding(.bottom, 8)
+
+            Text(entry.headline)
+                .font(.system(size: 15, weight: .bold))
+                .foregroundStyle(DadariColor.accentDeep)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+
+            Text(entry.subheadline)
+                .font(.system(size: 11))
+                .foregroundStyle(DadariColor.inkSoft)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+
+            Spacer(minLength: 8)
+
+            HStack(spacing: 6) {
+                smallButton("시작", intent: RecordIntents.start, filled: true)
+                smallButton("종료", intent: RecordIntents.end, filled: false)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        .accessibilityLabel(entry.accessibilityLabel)
     }
 
-    private var predictionText: String {
-        guard let prediction = entry.prediction else {
-            return "기록 없음"
+    private func smallButton(_ title: String, intent: some AppIntent, filled: Bool) -> some View {
+        Button(intent: intent) {
+            Text(title)
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(filled ? DadariColor.background : DadariColor.accentDeep)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 7)
+                .background(
+                    RoundedRectangle(cornerRadius: 9, style: .continuous)
+                        .fill(filled ? DadariColor.accent : DadariColor.accentSoft)
+                )
         }
-        switch prediction.status {
-        case .upcoming(let days):
-            let dday = days == 0 ? "오늘" : "D-\(days)"
-            return prediction.confidence == .low ? "\(dday) 예상" : dday
-        case .overdue(let days):
-            return "예정일 +\(days)일"
-        case .stale:
-            // 카운트다운을 멈춘다. 틀린 숫자를 계속 보여주지 않기 위한 안전장치(PRD 4.1).
-            return "기록을 확인해 주세요"
-        }
+        .buttonStyle(.plain)
     }
+}
+
+/// 위젯 버튼이 쓰는 인텐트 모음. 상황에 따라 시작/종료를 골라 넘긴다.
+enum RecordIntents {
+    static var start: RecordPeriodStartIntent { RecordPeriodStartIntent() }
+    static var end: RecordPeriodEndIntent { RecordPeriodEndIntent() }
 }

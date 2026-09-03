@@ -48,6 +48,7 @@
 		0C0000000000000000000004 /* Dadari.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Dadari.entitlements; sourceTree = "<group>"; };
 		0C0000000000000000000005 /* DadariWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = DadariWidget.entitlements; sourceTree = "<group>"; };
 		0C0000000000000000000006 /* DadariWidget-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "DadariWidget-Info.plist"; sourceTree = "<group>"; };
+		0C0000000000000000000007 /* Dadari-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Dadari-Info.plist"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -108,6 +109,7 @@
 			isa = PBXGroup;
 			children = (
 				0C0000000000000000000004 /* Dadari.entitlements */,
+				0C0000000000000000000007 /* Dadari-Info.plist */,
 				0C0000000000000000000005 /* DadariWidget.entitlements */,
 				0C0000000000000000000006 /* DadariWidget-Info.plist */,
 			);
@@ -399,6 +401,7 @@
 				DEVELOPMENT_TEAM = 5Y43RDX3FM;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Config/Dadari-Info.plist";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "기록한 생리 주기를 건강 앱에 저장해 다른 건강 기록과 함께 볼 수 있게 합니다.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -427,6 +430,7 @@
 				DEVELOPMENT_TEAM = 5Y43RDX3FM;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Config/Dadari-Info.plist";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "기록한 생리 주기를 건강 앱에 저장해 다른 건강 기록과 함께 볼 수 있게 합니다.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
