@@ -2,9 +2,13 @@ import SwiftUI
 
 /// 홈 상단의 주간 스트립. 탭하면 월간 그리드로 펼쳐진다(PRD 3.2).
 ///
-/// 주간은 "이번 주"가 아니라 **선택한 날짜부터 시작하는 7일**이다.
-/// 월간에서 날짜를 탭하면 그 날짜를 시작점으로 하는 새 일주일로 다시 접힌다.
-/// 애플 캘린더/건강 앱과 같은 패턴이라 학습 비용이 낮다.
+/// 주간은 **선택한 날짜가 속한 달력 주(일~토)**를 보여주고, 좌우로 밀어 주를 옮긴다.
+/// 애플 건강 앱과 같은 방식이다.
+///
+/// - Note: PRD 3.2와 목업 캡션은 "탭한 날짜를 시작점으로 하는 일주일"이라고 적고 있지만,
+///   그렇게 하면 고른 날짜가 늘 맨 왼쪽으로 오면서 요일 열이 매번 어긋난다.
+///   같은 주 안에서 날짜를 옮길 때마다 격자가 흔들려 위치를 가늠하기 어렵다.
+///   실제로 써 본 뒤 달력 주 고정으로 바꾸기로 했다. 두 문서도 갱신이 필요하다.
 struct CycleCalendarView: View {
     @Binding var selectedDate: Date
     @Binding var isExpanded: Bool
@@ -21,6 +25,8 @@ struct CycleCalendarView: View {
                 monthPanel
             } else {
                 weekRow
+                    .contentShape(Rectangle())
+                    .gesture(weekSwipeGesture)
             }
         }
     }
@@ -85,9 +91,27 @@ struct CycleCalendarView: View {
         .padding(.bottom, 6)
     }
 
-    /// 선택한 날짜부터 7일. 목업의 `addDays(selectedDate, i)`와 같다.
+    /// 선택한 날짜가 속한 달력 주. 요일 열이 늘 같은 자리에 오도록 주 시작일부터 7일을 만든다.
     private var weekDates: [Date] {
-        (0..<7).compactMap { calendar.date(byAdding: .day, value: $0, to: startOfSelectedDay) }
+        guard let interval = calendar.dateInterval(of: .weekOfYear, for: startOfSelectedDay) else {
+            return [startOfSelectedDay]
+        }
+        return (0..<7).compactMap { calendar.date(byAdding: .day, value: $0, to: interval.start) }
+    }
+
+    /// 좌우로 밀어 주를 옮긴다. 선택한 요일은 그대로 두고 주만 이동한다.
+    private var weekSwipeGesture: some Gesture {
+        DragGesture(minimumDistance: 24)
+            .onEnded { value in
+                guard abs(value.translation.width) > abs(value.translation.height) else { return }
+                let offset = value.translation.width < 0 ? 7 : -7
+                guard let moved = calendar.date(byAdding: .day, value: offset, to: startOfSelectedDay) else {
+                    return
+                }
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    selectedDate = moved
+                }
+            }
     }
 
     // MARK: - 월간

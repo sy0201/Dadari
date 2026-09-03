@@ -19,7 +19,18 @@ struct DadariWidgetEntry: TimelineEntry {
     )
 
     /// 가로형/정사각의 큰 문구.
+    ///
+    /// DEBUG 빌드에서는 뒤에 빌드 시각을 붙인다. 위젯이 이전 빌드에 물려 있는지
+    /// 눈으로 바로 구분하기 위한 것이다(BuildStamp 참고).
     var headline: String {
+        #if DEBUG
+        return "\(baseHeadline) · \(BuildStamp.short)"
+        #else
+        return baseHeadline
+        #endif
+    }
+
+    private var baseHeadline: String {
         guard isUsingSharedContainer else { return "연동 확인 필요" }
         guard let prediction else { return "기록을 시작해요" }
         if hasOngoingPeriod { return "생리 중" }
