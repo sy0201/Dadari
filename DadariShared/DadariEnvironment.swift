@@ -57,11 +57,18 @@ enum DadariEnvironment {
             containerFailure = error
             DadariLog.store.error("""
                 App Group 스토어 연결 실패: \(String(describing: error), privacy: .public). \
-                엔타이틀먼트와 프로비저닝 프로파일을 확인할 것. 인메모리로 폴백한다.
+                엔타이틀먼트와 프로비저닝 프로파일을 확인할 것. 앱 자체 저장소로 폴백한다.
                 """)
-            // 여기서 죽으면 원인을 볼 방법이 없다. 동작은 시키되 공유는 안 되는 상태로 둔다.
-            let fallback = try! DadariModelContainer.inMemory()
+        }
+
+        // 여기서 죽으면 원인을 볼 방법이 없다. 동작은 시키되 공유는 안 되는 상태로 두고,
+        // 실패 사실은 로그와 개발용 대시보드에 남긴다.
+        if let fallback = try? DadariModelContainer.localFallback() {
             return PeriodRecordStore(container: fallback)
         }
+
+        DadariLog.store.fault("로컬 폴백 저장소도 열지 못했다. 인메모리로 동작한다.")
+        // 인메모리는 마지막 수단이다. 앱을 껐다 켜면 기록이 사라진다.
+        return PeriodRecordStore(container: try! DadariModelContainer.inMemory())
     }
 }
