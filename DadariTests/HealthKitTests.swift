@@ -77,6 +77,39 @@ final class HealthKitWriterSampleTests: XCTestCase {
         XCTAssertEqual(writer.makeSamples(for: record).count, 1)
     }
 
+    func test_샘플이_자정_경계를_넘지_않는다() throws {
+        // 다음 날 0시로 끝내면 건강 앱이 그 다음 날에도 데이터가 있다고 보고,
+        // 사용자가 건강 앱에서 그 날짜를 직접 기록할 수 없게 된다.
+        // 실기기 확인에서 드러난 문제라 회귀를 막는다.
+        let record = PeriodRecordSnapshot(
+            startDate: TestSupport.day(2026, 9, 1),
+            endDate: TestSupport.day(2026, 9, 3)
+        )
+
+        let samples = writer.makeSamples(for: record)
+        XCTAssertEqual(samples.count, 3)
+
+        for sample in samples {
+            let startDay = TestSupport.calendar.startOfDay(for: sample.startDate)
+            let endDay = TestSupport.calendar.startOfDay(for: sample.endDate)
+            XCTAssertEqual(startDay, endDay, "샘플 하나가 두 날짜에 걸치면 안 된다")
+            XCTAssertGreaterThan(sample.endDate, sample.startDate)
+        }
+    }
+
+    func test_연속된_날짜의_샘플이_서로_겹치지_않는다() {
+        let record = PeriodRecordSnapshot(
+            startDate: TestSupport.day(2026, 9, 1),
+            endDate: TestSupport.day(2026, 9, 3)
+        )
+
+        let samples = writer.makeSamples(for: record).sorted { $0.startDate < $1.startDate }
+
+        for (previous, next) in zip(samples, samples.dropFirst()) {
+            XCTAssertLessThan(previous.endDate, next.startDate, "앞 샘플의 끝이 다음 샘플 시작보다 빨라야 한다")
+        }
+    }
+
     func test_생리량을_고르지_않으면_unspecified로_저장한다() {
         let record = PeriodRecordSnapshot(startDate: TestSupport.day(2026, 9, 1), flow: nil)
 

@@ -69,6 +69,12 @@ struct HealthKitWriter: HealthKitWriting {
     // MARK: - Private
 
     /// 기록 기간을 하루 단위 샘플로 펼친다. 종료일이 아직 없으면 시작일 하루만 저장한다.
+    ///
+    /// - Important: 각 샘플은 그날 자정부터 **23:59:59까지**로 끝난다. 다음 날 0시로 끝내면
+    ///   샘플이 자정 경계에 걸쳐 건강 앱이 다음 날에도 데이터가 있다고 보게 되고,
+    ///   그러면 건강 앱에서 그 날짜를 직접 기록할 수 없게 된다(다른 앱이 쓴 날짜는
+    ///   사용자가 토글하지 못하고 원본 앱에서 관리해야 하기 때문).
+    ///   실기기 확인에서 "9월 3일 이후로 건강 앱 버튼이 안 먹힌다"로 드러난 문제다.
     func makeSamples(for record: PeriodRecordSnapshot) -> [HKCategorySample] {
         let start = calendar.startOfDay(for: record.startDate)
         let end = calendar.startOfDay(for: record.endDate ?? record.startDate)
@@ -79,7 +85,10 @@ struct HealthKitWriter: HealthKitWriting {
         var samples: [HKCategorySample] = []
         var day = start
         while day <= end {
-            guard let nextDay = calendar.date(byAdding: .day, value: 1, to: day) else { break }
+            guard let nextDay = calendar.date(byAdding: .day, value: 1, to: day),
+                  let dayEnd = calendar.date(byAdding: .second, value: -1, to: nextDay) else {
+                break
+            }
             let metadata: [String: Any] = [
                 HKMetadataKeyMenstrualCycleStart: day == start,
                 HKMetadataKeyExternalUUID: record.id.uuidString,
@@ -89,7 +98,7 @@ struct HealthKitWriter: HealthKitWriting {
                     type: menstrualFlowType,
                     value: value,
                     start: day,
-                    end: nextDay,
+                    end: dayEnd,
                     metadata: metadata
                 )
             )
