@@ -39,6 +39,14 @@ final class PeriodRecord {
     var createdAt: Date = Date()
     var updatedAt: Date = Date()
 
+    /// HealthKit에 마지막으로 내보낸 시각. nil이면 아직 동기화되지 않았다는 뜻이다.
+    ///
+    /// 잠금화면 기록은 위젯 익스텐션 프로세스에서 일어나는데, 거기서 HealthKit을 쓰려면
+    /// 익스텐션에 별도 권한이 필요하고 백그라운드 권한 상태도 다루기 까다롭다.
+    /// 그래서 위젯은 저장만 하고, 앱이 열릴 때 밀린 기록을 모아서 내보낸다.
+    /// 기록이 수정되면 다시 nil로 돌려 재동기화 대상으로 만든다.
+    var healthKitSyncedAt: Date?
+
     init(
         id: UUID = UUID(),
         startDate: Date,
@@ -47,7 +55,8 @@ final class PeriodRecord {
         symptomTags: [String]? = nil,
         source: RecordSource = .app,
         createdAt: Date = Date(),
-        updatedAt: Date = Date()
+        updatedAt: Date = Date(),
+        healthKitSyncedAt: Date? = nil
     ) {
         self.id = id
         self.startDate = startDate
@@ -57,6 +66,7 @@ final class PeriodRecord {
         self.sourceRawValue = source.rawValue
         self.createdAt = createdAt
         self.updatedAt = updatedAt
+        self.healthKitSyncedAt = healthKitSyncedAt
     }
 
     var flow: FlowLevel? {
@@ -74,5 +84,11 @@ final class PeriodRecord {
     /// 아직 종료일이 기록되지 않은 진행 중인 주기인지.
     var isOngoing: Bool {
         endDate == nil
+    }
+
+    /// HealthKit으로 아직 내보내지 않았거나, 내보낸 뒤 수정된 기록인지.
+    var needsHealthKitSync: Bool {
+        guard let healthKitSyncedAt else { return true }
+        return updatedAt > healthKitSyncedAt
     }
 }

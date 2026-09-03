@@ -168,6 +168,28 @@ final class PeriodRecordStore {
         }
     }
 
+    // MARK: - HealthKit 동기화 보조
+
+    /// 아직 HealthKit으로 내보내지 않았거나, 내보낸 뒤 수정된 기록.
+    func recordsNeedingHealthKitSync() throws -> [PeriodRecordSnapshot] {
+        try withContext { context in
+            try Self.fetchRecords(in: context)
+                .filter(\.needsHealthKitSync)
+                .sorted { $0.startDate < $1.startDate }
+                .map(\.snapshot)
+        }
+    }
+
+    func markHealthKitSynced(id: UUID, at date: Date = Date()) throws {
+        try withContext { context in
+            guard let record = try Self.fetchRecords(in: context).first(where: { $0.id == id }) else {
+                throw PeriodRecordError.recordNotFound
+            }
+            record.healthKitSyncedAt = date
+            try context.save()
+        }
+    }
+
     // MARK: - 설정
 
     @discardableResult

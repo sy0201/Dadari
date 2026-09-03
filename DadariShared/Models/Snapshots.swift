@@ -12,6 +12,8 @@ struct PeriodRecordSnapshot: Identifiable, Equatable, Hashable, Sendable {
     var flow: FlowLevel?
     var symptomTags: [String]?
     var source: RecordSource
+    /// nil이면 아직 HealthKit으로 내보내지 않았다는 뜻이다.
+    var healthKitSyncedAt: Date?
 
     init(
         id: UUID = UUID(),
@@ -19,7 +21,8 @@ struct PeriodRecordSnapshot: Identifiable, Equatable, Hashable, Sendable {
         endDate: Date? = nil,
         flow: FlowLevel? = nil,
         symptomTags: [String]? = nil,
-        source: RecordSource = .app
+        source: RecordSource = .app,
+        healthKitSyncedAt: Date? = nil
     ) {
         self.id = id
         self.startDate = startDate
@@ -27,6 +30,7 @@ struct PeriodRecordSnapshot: Identifiable, Equatable, Hashable, Sendable {
         self.flow = flow
         self.symptomTags = symptomTags
         self.source = source
+        self.healthKitSyncedAt = healthKitSyncedAt
     }
 
     var isOngoing: Bool {
@@ -67,7 +71,8 @@ extension PeriodRecord {
             endDate: endDate,
             flow: flow,
             symptomTags: symptomTags,
-            source: source
+            source: source,
+            healthKitSyncedAt: healthKitSyncedAt
         )
     }
 }

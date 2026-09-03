@@ -200,7 +200,9 @@ git diff로 확인하는 습관을 들인다.
 
 - **다른 날짜 기록 경로**: PRD 4.1의 "다른 날짜로 기록할 때만 앱이 열리고 캘린더 피커로 전환"은 이번 스파이크 범위 밖이다.
   위젯의 `widgetURL` / `Link`로 딥링크를 열고 앱에서 라우팅하는 구조가 되며, 5~8주차 위젯 정식 UI 단계에서 붙인다.
-- **저장소 교체**: `SpikeRecordStore`(UserDefaults)는 2~4.5주차에 App Group 컨테이너의 SwiftData로 교체한다.
-  이때 위젯 익스텐션에서도 같은 `ModelContainer`를 열 수 있는지 별도 확인이 필요하다.
-- **위젯 갱신 예산**: 현재 타임라인 정책은 `.never`이고 인텐트 실행 시점에만 갱신한다.
-  정식 위젯은 D-day가 매일 바뀌므로 자정 기준 타임라인 엔트리를 만들어야 한다.
+- ~~**저장소 교체**: `SpikeRecordStore`(UserDefaults)는 2~4.5주차에 App Group 컨테이너의 SwiftData로 교체한다.~~
+  **2주차에 완료.** `DadariModelContainer`가 `ModelConfiguration(groupContainer:)`로 App Group 안에
+  스토어를 두고, 앱과 위젯이 같은 컨테이너를 연다. 스파이크 저장소와 관련 파일은 삭제했다.
+- ~~**위젯 갱신 예산**: 현재 타임라인 정책은 `.never`이고 인텐트 실행 시점에만 갱신한다.~~
+  **2주차에 처리.** 자정 기준으로 8일치 엔트리를 미리 만들고 `.atEnd` 정책을 쓴다.
+  기록이 생기면 인텐트가 `reloadAllTimelines()`로 즉시 덮어쓴다.

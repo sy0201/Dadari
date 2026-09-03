@@ -4,7 +4,7 @@ import SwiftUI
 struct DadariApp: App {
     var body: some Scene {
         WindowGroup {
-            SpikeVerificationView()
+            DevDashboardView()
         }
     }
 }
