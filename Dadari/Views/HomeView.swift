@@ -66,6 +66,10 @@ struct HomeView: View {
             Text(model.message ?? "")
         }
         .sheet(isPresented: $isDevDashboardPresented) {
+            // 대시보드에서 기록을 지우고 돌아오면 홈이 옛 데이터를 그대로 들고 있게 된다.
+            // 시트를 닫는 것만으로는 onAppear도 scenePhase도 걸리지 않는다.
+            model.reload()
+        } content: {
             DevDashboardView()
         }
     }

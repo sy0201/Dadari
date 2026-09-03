@@ -115,12 +115,24 @@ final class HomeViewModel {
 
     /// 컬러 팝 카드의 기록 버튼. 진행 중인 주기가 있으면 종료를, 없으면 시작을 남긴다.
     func recordToday(now: Date = Date()) {
+        // 다른 화면에서 기록이 지워졌을 수 있으므로 최신 상태를 먼저 확인한다.
+        // 오래된 상태로 판단하면 종료할 기록이 없는데 종료를 시도하는 일이 생긴다.
+        reload(now: now)
+
         do {
+            let outcome: PeriodRecordOutcome
             if hasOngoingPeriod {
-                try store.recordPeriodEnd(on: now, now: now, source: .app)
+                outcome = try store.recordPeriodEnd(on: now, now: now, source: .app)
             } else {
-                try store.recordPeriodStart(on: now, now: now, source: .app)
+                outcome = try store.recordPeriodStart(on: now, now: now, source: .app)
             }
+
+            if !outcome.isNewRecord {
+                // 같은 날 같은 종류는 한 번만 저장된다. 아무 일도 일어나지 않은 것처럼
+                // 보이지 않도록 이유를 알린다.
+                message = "오늘은 이미 기록돼 있어요."
+            }
+
             WidgetCenter.shared.reloadAllTimelines()
             selectedDate = Calendar.current.startOfDay(for: now)
             reload(now: now)
