@@ -36,9 +36,19 @@ enum DadariModelContainer {
     /// 위젯과 데이터가 갈리지만, 최소한 앱을 껐다 켜도 기록이 남는다.
     /// 인메모리로 떨어뜨리면 사용자가 남긴 기록이 그대로 사라지기 때문에 디스크를 쓴다.
     static func localFallback() throws -> ModelContainer {
+        // 갓 설치한 앱에는 Application Support 디렉터리가 아직 없다. 그대로 열면
+        // "Failed to stat path ... No such file or directory"로 실패한다.
+        // create: true로 디렉터리를 먼저 만들어 둔다.
+        let directory = try FileManager.default.url(
+            for: .applicationSupportDirectory,
+            in: .userDomainMask,
+            appropriateFor: nil,
+            create: true
+        )
         let configuration = ModelConfiguration(
             "DadariLocalFallback",
             schema: schema,
+            url: directory.appendingPathComponent("DadariLocalFallback.store"),
             cloudKitDatabase: .none
         )
         return try ModelContainer(for: schema, configurations: configuration)

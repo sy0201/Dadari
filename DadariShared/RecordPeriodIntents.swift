@@ -59,7 +59,8 @@ enum RecordPeriodIntentRunner {
             DadariLog.intent.notice("""
                 인텐트 실행 kind=\(kind.rawValue, privacy: .public) \
                 결과=\(outcome.isNewRecord ? "기록됨" : "중복무시", privacy: .public) \
-                AppGroup=\(DadariEnvironment.isUsingSharedContainer ? "연결됨" : "실패", privacy: .public)
+                AppGroup=\(DadariEnvironment.isUsingSharedContainer ? "연결됨" : "실패", privacy: .public) \
+                빌드=\(buildStamp, privacy: .public)
                 """)
         } catch {
             // 잠금화면에는 오류를 띄울 자리가 없다. 로그로만 남기고 위젯 갱신은 그대로 진행해서
@@ -71,5 +72,14 @@ enum RecordPeriodIntentRunner {
         }
 
         WidgetCenter.shared.reloadAllTimelines()
+    }
+
+    /// 이 인텐트를 실행한 바이너리의 빌드 시각. 위젯이 옛 빌드에 물려 있는지 가려낸다.
+    private static var buildStamp: String {
+        #if DEBUG
+        return BuildStamp.short
+        #else
+        return "release"
+        #endif
     }
 }

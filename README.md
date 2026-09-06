@@ -14,9 +14,9 @@ PRD 10번 일정 **2~4.5주차 진행 중.**
   핵심 동선이 실기기에서 검증됐다 ([SPIKE.md](SPIKE.md)).
 - **2주차 완료**: CloudKit 대응 데이터 모델, 기록/예측 로직, XCTest, HealthKit 쓰기 연동.
   스파이크용 UserDefaults 저장소를 App Group 컨테이너의 SwiftData로 교체했다.
+- **5~8주차 진행 중**: 목업(`ui-mockup.html`) 기준으로 홈 화면과 위젯 UI 구현.
 
-정식 UI는 5~8주차(위젯)와 10~11주차(홈·캘린더) 작업이다. 그때까지 앱 화면은
-저장소·예측·HealthKit이 동작하는지 확인하는 개발용 대시보드다.
+개발용 대시보드(`DevDashboardView`)는 워드마크를 길게 누르면 열린다. 실기기 확인용이다.
 
 ## 요구 환경
 
@@ -37,11 +37,15 @@ App Group `group.com.dadari.app`으로 앱과 위젯이 데이터를 공유한�
 
 ```
 Dadari/                    앱 타겟 전용 소스
+  Design/                    폰트
+  Views/                     홈 화면 구성 요소
+  Resources/Fonts/           고운바탕 서브셋 (OFL-1.1)
 DadariWidget/              위젯 익스텐션 전용 소스
 DadariShared/              앱 + 위젯이 함께 컴파일하는 공유 소스
   Models/                    SwiftData 모델 + 값 타입 스냅샷
   Persistence/               ModelContainer, 기록 저장소
-  Prediction/                CyclePredictionService
+  Design/                    색상 팔레트, 문페이즈 뷰
+  Prediction/                CyclePredictionService, CycleCalendar
   Health/                    HealthKit 쓰기
 DadariTests/               유닛 테스트
 Config/                    엔타이틀먼트, 위젯 Info.plist
@@ -78,6 +82,9 @@ xcodebuild test \
   바꾸면 마이그레이션 없이 동기화를 켤 수 있다 (PRD 6.3).
 - **예측 로직 분리**: `CyclePredictionService`는 저장소와 UI를 모르고 값 타입만 받는다.
   컨테이너를 띄우지 않고 케이스별로 검증한다.
+- **폰트 서브셋**: 고운바탕 원본은 두 벌 합쳐 16MB라 앱에서 실제로 쓰는 글자만 남겨
+  26KB로 줄여 번들에 넣는다(`Scripts/subset_fonts.py`). 고운바탕으로 새 문구를 표시하려면
+  스크립트의 글자 목록을 갱신해야 한다.
 - **HealthKit은 지연 동기화**: 잠금화면 기록은 위젯 익스텐션 프로세스에서 일어나는데
   거기서 HealthKit을 쓰려면 별도 권한과 잠금 상태 처리가 필요하다. 위젯은 저장만 하고,
   앱이 앞으로 나올 때 `HealthKitSyncCoordinator`가 밀린 기록을 내보낸다.
