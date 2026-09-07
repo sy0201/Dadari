@@ -72,8 +72,8 @@ final class SettingsViewModel {
             }
             notificationStatus = await notifications.authorizationStatus()
         }
+        // apply가 재예약까지 하므로 여기서 따로 부르지 않는다.
         apply { $0.notificationEnabled = enabled }
-        await DadariEnvironment.rescheduleReminders()
     }
 
     func isDayBeforeSelected(_ days: Int) -> Bool {
@@ -89,7 +89,6 @@ final class SettingsViewModel {
         }
         // 큰 수(먼 시점)부터 정렬해 D-3, D-1 순으로 보이게 한다.
         apply { $0.notificationDaysBefore = selected.sorted(by: >) }
-        Task { await DadariEnvironment.rescheduleReminders() }
     }
 
     // MARK: - HealthKit

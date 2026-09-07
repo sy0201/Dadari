@@ -247,6 +247,48 @@ final class CycleReminderServiceTests: XCTestCase {
         )
     }
 
+    // MARK: - 겹쳐 도는 재예약
+
+    func test_재예약이_겹쳐_돌아도_설정과_어긋나지_않는다() async throws {
+        // 재예약은 "지우고 넣는" 두 단계다. 겹쳐 돌면 한쪽이 지운 뒤 다른 쪽이 넣어
+        // 설정과 어긋난 상태로 끝날 수 있다. 큐로 순서를 지키면 마지막 상태가 정답이어야 한다.
+        try seedRecordsForPrediction()
+        let queue = ReminderRescheduleQueue()
+        let service = self.service!
+
+        await withTaskGroup(of: Void.self) { group in
+            for _ in 0..<5 {
+                group.addTask {
+                    await queue.enqueue { await service.reschedule(now: self.now) }
+                }
+            }
+        }
+
+        // 식별자가 정해져 있으므로 몇 번을 돌아도 최종 대기 목록은 두 건이어야 한다.
+        let pending = await scheduler.pendingIdentifiers()
+        XCTAssertEqual(
+            Set(pending),
+            ["period-reminder-3d", "period-reminder-1d"]
+        )
+    }
+
+    func test_알림을_끄는_재예약이_마지막이면_예약이_남지_않는다() async throws {
+        try seedRecordsForPrediction()
+        let queue = ReminderRescheduleQueue()
+        let service = self.service!
+        let store = self.store!
+
+        await queue.enqueue { await service.reschedule(now: self.now) }
+        let afterFirst = await scheduler.pendingIdentifiers()
+        XCTAssertFalse(afterFirst.isEmpty)
+
+        try store.updateSettings { $0.notificationEnabled = false }
+        await queue.enqueue { await service.reschedule(now: self.now) }
+
+        let pending = await scheduler.pendingIdentifiers()
+        XCTAssertTrue(pending.isEmpty, "껐는데 예약이 남으면 안 된다")
+    }
+
     // MARK: - Helpers
 
     /// 28일 간격 기록 세 건. 예정일이 충분히 미래로 잡히도록 만든다.

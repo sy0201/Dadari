@@ -164,3 +164,26 @@ struct CycleReminderService {
         return summary
     }
 }
+
+/// 재예약이 겹쳐 돌지 않도록 순서를 지킨다.
+///
+/// 재예약은 "기존 것을 지우고 새로 넣는" 두 단계라, 두 번이 겹치면 사이가 엇갈릴 수 있다.
+/// 예를 들어 알림을 끄는 재예약이 지우기만 하고 끝난 뒤에 앞서 시작된 재예약이 뒤늦게
+/// 넣어버리면, 껐는데도 알림이 남는다. 실제로 로그에 "지움=1 예약=2"처럼 앞뒤가 맞지 않는
+/// 기록이 남아서 발견했다.
+///
+/// 앞선 작업이 끝난 뒤에 다음 작업을 시작하도록 이어 붙인다.
+actor ReminderRescheduleQueue {
+    private var last: Task<Void, Never>?
+
+    /// 앞선 재예약이 끝난 뒤 `work`를 실행하고, 끝날 때까지 기다린다.
+    func enqueue(_ work: @escaping @Sendable () async -> Void) async {
+        let previous = last
+        let task = Task {
+            await previous?.value
+            await work()
+        }
+        last = task
+        await task.value
+    }
+}
