@@ -14,14 +14,29 @@ PRD 10번 일정 **2~4.5주차 진행 중.**
   핵심 동선이 실기기에서 검증됐다 ([SPIKE.md](SPIKE.md)).
 - **2주차 완료**: CloudKit 대응 데이터 모델, 기록/예측 로직, XCTest, HealthKit 쓰기 연동.
   스파이크용 UserDefaults 저장소를 App Group 컨테이너의 SwiftData로 교체했다.
-- **5~8주차 진행 중**: 목업(`ui-mockup.html`) 기준으로 홈 화면과 위젯 UI 구현.
+- **5~8주차 완료**: 목업(`ui-mockup.html`) 기준으로 홈 화면과 위젯 UI 구현.
+- **필수 화면 보강**: 온보딩, 권한 프리퍼미션, 설정 (UX-설계 6번).
 
-개발용 대시보드(`DevDashboardView`)는 워드마크를 길게 누르면 열린다. 실기기 확인용이다.
+개발용 대시보드(`DevDashboardView`)는 설정 > 정보에서 열린다(DEBUG 빌드만). 실기기 확인용이다.
 
 ## 요구 환경
 
 - Xcode 16 이상 (`project.pbxproj`가 동기화 폴더 그룹을 사용)
 - iOS 17.0 이상 (인터랙티브 위젯의 `Button(intent:)`가 iOS 17부터)
+
+### 로컬 Xcode가 CI보다 새 버전이라면
+
+CI는 `macos-15` 러너의 기본 Xcode(16.x)로 돈다. 로컬이 더 새 버전이면 **로컬에서는
+통과하는데 CI에서만 깨지는 코드**가 나올 수 있다. 실제로 `Bool?`을 `switch`로 나눈 코드가
+Xcode 26에서는 통과하고 16.4에서는 "switch must be exhaustive"로 실패했다.
+
+푸시 전에 확인하려면 `DEVELOPER_DIR`을 옮겨 한 번 더 빌드한다.
+
+```bash
+DEVELOPER_DIR=/Applications/Xcode16.1.app/Contents/Developer \
+  xcodebuild build -project Dadari.xcodeproj -scheme Dadari \
+  -destination 'generic/platform=iOS Simulator'
+```
 
 ## 타겟 구성
 
@@ -39,6 +54,8 @@ App Group `group.com.dadari.app`으로 앱과 위젯이 데이터를 공유한�
 Dadari/                    앱 타겟 전용 소스
   Design/                    폰트
   Views/                     홈 화면 구성 요소
+    Onboarding/                최초 실행 흐름과 권한 프리퍼미션
+    Settings/                  설정
   Resources/Fonts/           고운바탕 서브셋 (OFL-1.1)
 DadariWidget/              위젯 익스텐션 전용 소스
 DadariShared/              앱 + 위젯이 함께 컴파일하는 공유 소스
@@ -47,6 +64,7 @@ DadariShared/              앱 + 위젯이 함께 컴파일하는 공유 소스
   Design/                    색상 팔레트, 문페이즈 뷰
   Prediction/                CyclePredictionService, CycleCalendar
   Health/                    HealthKit 쓰기
+  Notifications/             알림 권한 (예약은 9주차)
 DadariTests/               유닛 테스트
 Config/                    엔타이틀먼트, 위젯 Info.plist
 Scripts/                   CI 보조 스크립트

@@ -8,7 +8,14 @@ import WidgetKit
 struct HomeView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var model = HomeViewModel()
-    @State private var isDevDashboardPresented = false
+    // 시뮬레이터에서 탭 없이 상태별 스크린샷을 찍기 위한 실행 인자(SampleDataSeeder 참고).
+    @State private var isSettingsPresented = {
+        #if DEBUG
+        return CommandLine.arguments.contains("-showSettings")
+        #else
+        return false
+        #endif
+    }()
     @State private var editingRecord: PeriodRecordSnapshot?
 
     var body: some View {
@@ -87,26 +94,35 @@ struct HomeView: View {
                 onDelete: { await model.delete(record: record) }
             )
         }
-        .sheet(isPresented: $isDevDashboardPresented) {
-            // 대시보드에서 기록을 지우고 돌아오면 홈이 옛 데이터를 그대로 들고 있게 된다.
-            // 시트를 닫는 것만으로는 onAppear도 scenePhase도 걸리지 않는다.
+        .sheet(isPresented: $isSettingsPresented) {
+            // 설정에서 주기 값을 바꾸면 예측이 달라진다. 시트를 닫는 것만으로는
+            // onAppear도 scenePhase도 걸리지 않아 홈이 옛 값을 그대로 들고 있게 된다.
             model.reload()
         } content: {
-            DevDashboardView()
+            SettingsView()
         }
     }
 
     // MARK: - 조각
 
+    /// 목업에는 워드마크만 있지만, 설정은 UX-설계 6번의 필수 화면이라 진입점이 필요하다.
+    /// 여백을 해치지 않도록 워드마크 줄 오른쪽 끝에 작게 둔다.
     private var wordmark: some View {
-        Text("다달이")
-            .font(DadariFont.wordmark())
-            .foregroundStyle(DadariColor.ink)
-            // 정식 화면에는 개발용 대시보드로 가는 입구를 두지 않는다.
-            // 실기기 확인이 잦은 단계라 길게 눌러서만 열리게 해뒀다.
-            .onLongPressGesture(minimumDuration: 1.0) {
-                isDevDashboardPresented = true
+        HStack {
+            Text("다달이")
+                .font(DadariFont.wordmark())
+                .foregroundStyle(DadariColor.ink)
+            Spacer()
+            Button {
+                isSettingsPresented = true
+            } label: {
+                Image(systemName: "gearshape")
+                    .font(.system(size: 16))
+                    .foregroundStyle(DadariColor.inkSoft)
             }
+            .buttonStyle(.plain)
+            .accessibilityLabel("설정")
+        }
     }
 
     private var moonHero: some View {

@@ -22,6 +22,10 @@ final class CycleSettings {
 
     var healthKitSyncEnabled: Bool = false
 
+    /// 온보딩을 마친 시각. nil이면 아직 안 마쳤다는 뜻이고, 앱은 온보딩부터 띄운다.
+    /// 옵셔널이라 CloudKit 제약을 지키면서 나중에 추가해도 마이그레이션이 필요 없다.
+    var onboardingCompletedAt: Date?
+
     var updatedAt: Date = Date()
 
     init(
@@ -31,6 +35,7 @@ final class CycleSettings {
         notificationEnabled: Bool = true,
         notificationDaysBefore: [Int] = CycleDefaults.notificationDaysBefore,
         healthKitSyncEnabled: Bool = false,
+        onboardingCompletedAt: Date? = nil,
         updatedAt: Date = Date()
     ) {
         self.lastPeriodStartDate = lastPeriodStartDate
@@ -39,6 +44,7 @@ final class CycleSettings {
         self.notificationEnabled = notificationEnabled
         self.notificationDaysBefore = notificationDaysBefore
         self.healthKitSyncEnabled = healthKitSyncEnabled
+        self.onboardingCompletedAt = onboardingCompletedAt
         self.updatedAt = updatedAt
     }
 }

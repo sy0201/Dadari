@@ -45,6 +45,10 @@ struct CycleSettingsSnapshot: Equatable, Sendable {
     var notificationEnabled: Bool
     var notificationDaysBefore: [Int]
     var healthKitSyncEnabled: Bool
+    var onboardingCompletedAt: Date?
+
+    /// 온보딩을 마쳤는지. 앱 최초 실행 화면을 고르는 기준이다.
+    var hasCompletedOnboarding: Bool { onboardingCompletedAt != nil }
 
     init(
         lastPeriodStartDate: Date? = nil,
@@ -52,7 +56,8 @@ struct CycleSettingsSnapshot: Equatable, Sendable {
         estimatedPeriodLength: Int = CycleDefaults.periodLength,
         notificationEnabled: Bool = true,
         notificationDaysBefore: [Int] = CycleDefaults.notificationDaysBefore,
-        healthKitSyncEnabled: Bool = false
+        healthKitSyncEnabled: Bool = false,
+        onboardingCompletedAt: Date? = nil
     ) {
         self.lastPeriodStartDate = lastPeriodStartDate
         self.estimatedCycleLength = estimatedCycleLength
@@ -60,6 +65,7 @@ struct CycleSettingsSnapshot: Equatable, Sendable {
         self.notificationEnabled = notificationEnabled
         self.notificationDaysBefore = notificationDaysBefore
         self.healthKitSyncEnabled = healthKitSyncEnabled
+        self.onboardingCompletedAt = onboardingCompletedAt
     }
 }
 
@@ -85,7 +91,8 @@ extension CycleSettings {
             estimatedPeriodLength: estimatedPeriodLength,
             notificationEnabled: notificationEnabled,
             notificationDaysBefore: notificationDaysBefore,
-            healthKitSyncEnabled: healthKitSyncEnabled
+            healthKitSyncEnabled: healthKitSyncEnabled,
+            onboardingCompletedAt: onboardingCompletedAt
         )
     }
 }
