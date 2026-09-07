@@ -47,6 +47,8 @@ enum SampleDataSeeder {
             $0.lastPeriodStartDate = anchor
             $0.estimatedCycleLength = 28
             $0.estimatedPeriodLength = 5
+            // 시드로 띄울 때는 홈부터 보여야 하므로 온보딩을 마친 것으로 둔다.
+            $0.onboardingCompletedAt = Date()
         }
 
         DadariLog.store.notice("시드 데이터 주입 완료")
