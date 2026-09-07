@@ -21,12 +21,16 @@ final class HomeViewModelTests: XCTestCase {
             container: container,
             calendar: TestSupport.calendar
         )
+        DadariEnvironment.setConditionStoreOverride(
+            DailyConditionStore(container: container, calendar: TestSupport.calendar)
+        )
         model = HomeViewModel(calendar: TestSupport.calendar)
     }
 
     override func tearDown() {
         model = nil
         DadariEnvironment.resetStoreOverride()
+        DadariEnvironment.setConditionStoreOverride(nil)
         container = nil
         super.tearDown()
     }
@@ -217,6 +221,54 @@ final class HomeViewModelTests: XCTestCase {
             farAway.startOfDay(for: instant),
             "Calendar.current가 섞이면 여기서 하루가 어긋난다"
         )
+    }
+
+    // MARK: - 컨디션
+
+    func test_컨디션을_저장하고_다시_읽는다() {
+        select(today)
+
+        XCTAssertTrue(model.saveCondition([.cramps, .fatigue], now: today))
+
+        model.reload(now: today)
+        XCTAssertEqual(model.condition?.symptoms, [.cramps, .fatigue])
+    }
+
+    func test_컨디션은_생리_기록이_없는_날에도_남길_수_있다() {
+        // PeriodRecord와 별도 모델로 둔 이유. 기록이 없어도 저장돼야 한다.
+        select(TestSupport.date(2026, 8, 20))
+
+        XCTAssertTrue(model.saveCondition([.moodSwing], now: today))
+        XCTAssertEqual(model.condition?.symptoms, [.moodSwing])
+    }
+
+    func test_증상을_모두_해제하면_컨디션_기록이_사라진다() {
+        select(today)
+        model.saveCondition([.cramps], now: today)
+
+        XCTAssertTrue(model.saveCondition([], now: today))
+
+        XCTAssertNil(model.condition)
+    }
+
+    func test_날짜를_바꾸면_그_날짜의_컨디션을_읽는다() {
+        select(TestSupport.date(2026, 9, 1))
+        model.saveCondition([.acne], now: today)
+
+        select(today)
+        model.reload(now: today)
+        XCTAssertNil(model.condition)
+
+        select(TestSupport.date(2026, 9, 1))
+        model.reload(now: today)
+        XCTAssertEqual(model.condition?.symptoms, [.acne])
+    }
+
+    func test_미래_날짜에는_컨디션을_저장할_수_없다() {
+        select(TestSupport.date(2026, 9, 20))
+
+        XCTAssertFalse(model.saveCondition([.cramps], now: today), "시트를 닫지 않아야 한다")
+        XCTAssertNotNil(model.message)
     }
 
     func test_기록이_없으면_예측도_비어_있다() {

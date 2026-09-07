@@ -7,7 +7,8 @@ import SwiftData
 /// 새로 만든다. `ModelContext`는 스레드 안전하지 않고 오래 들고 있으면 다른 프로세스의
 /// 변경을 놓친다. 컨테이너는 App Group 안의 같은 스토어 파일을 가리킨다.
 final class PeriodRecordStore {
-    private let container: ModelContainer
+    /// 같은 컨테이너를 쓰는 다른 저장소(`DailyConditionStore`)를 만들 수 있게 열어둔다.
+    let container: ModelContainer
     private let calendar: Calendar
 
     /// 잠금화면 연타 시 읽고-쓰기가 섞이지 않도록 프로세스 안에서 직렬화한다.

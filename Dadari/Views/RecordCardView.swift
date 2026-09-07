@@ -76,6 +76,49 @@ struct RecordCardView: View {
     }
 }
 
+/// 컨디션 기록 진입 카드. 홈에서 바텀시트를 여는 입구다(UX-설계 5번).
+///
+/// 기록이 첫 번째 액션이고 컨디션은 두 번째 액션이라, 보조 포인트 컬러를 쓴다(PRD 3.3).
+struct ConditionCardView: View {
+    let symptoms: [Symptom]
+    let isFuture: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 10) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("컨디션")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(DadariColor.inkSoft)
+                    Text(summary)
+                        .font(.system(size: 14, weight: symptoms.isEmpty ? .regular : .semibold))
+                        .foregroundStyle(symptoms.isEmpty ? DadariColor.inkMuted : DadariColor.accent2Deep)
+                        .lineLimit(1)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(DadariColor.inkSoft)
+            }
+            .padding(.vertical, 14)
+            .padding(.horizontal, 16)
+            .background(DadariColor.card)
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(isFuture)
+        .opacity(isFuture ? 0.5 : 1)
+        .accessibilityLabel(symptoms.isEmpty ? "컨디션 기록하기" : "컨디션 \(summary), 수정하기")
+    }
+
+    private var summary: String {
+        guard !symptoms.isEmpty else { return "기록하기" }
+        return symptoms.map(\.label).joined(separator: " · ")
+    }
+}
+
 /// 최근 기록 리스트. 목업의 `.group` / `.row`.
 struct RecentRecordsView: View {
     let records: [PeriodRecordSnapshot]

@@ -18,6 +18,14 @@ struct HomeView: View {
         #endif
     }()
     @State private var editingRecord: PeriodRecordSnapshot?
+    // 시뮬레이터에서 탭 없이 스크린샷을 찍기 위한 실행 인자(SampleDataSeeder 참고).
+    @State private var isConditionSheetPresented = {
+        #if DEBUG
+        return CommandLine.arguments.contains("-showCondition")
+        #else
+        return false
+        #endif
+    }()
 
     var body: some View {
         ZStack {
@@ -46,6 +54,14 @@ struct HomeView: View {
                         onEdit: { editingRecord = $0 }
                     )
                     .padding(.top, 8)
+                    .padding(.bottom, 10)
+
+                    ConditionCardView(
+                        symptoms: model.condition?.orderedSymptoms ?? [],
+                        isFuture: model.isSelectedDateInFuture()
+                    ) {
+                        isConditionSheetPresented = true
+                    }
                     .padding(.bottom, 20)
 
                     StatRowView(
@@ -93,6 +109,14 @@ struct HomeView: View {
             Button("확인") { model.message = nil }
         } message: {
             Text(model.message ?? "")
+        }
+        .sheet(isPresented: $isConditionSheetPresented) {
+            ConditionSheet(
+                date: model.selectedDate,
+                initialSymptoms: model.condition?.symptoms ?? []
+            ) { symptoms in
+                model.saveCondition(symptoms)
+            }
         }
         .sheet(item: $editingRecord) { record in
             RecordEditorView(

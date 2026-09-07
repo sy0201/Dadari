@@ -43,9 +43,9 @@ final class DadariModelContainerTests: XCTestCase {
         XCTAssertNoThrow(try DadariModelContainer.shared())
     }
 
-    func test_스키마에_두_모델이_모두_들어있다() {
+    func test_스키마에_모든_모델이_들어있다() {
         let names = DadariModelContainer.schema.entities.map(\.name).sorted()
 
-        XCTAssertEqual(names, ["CycleSettings", "PeriodRecord"])
+        XCTAssertEqual(names, ["CycleSettings", "DailyCondition", "PeriodRecord"])
     }
 }
