@@ -8,6 +8,8 @@ final class HomeViewModel {
     private(set) var records: [PeriodRecordSnapshot] = []
     private(set) var settings = CycleSettingsSnapshot()
     private(set) var prediction: CyclePrediction?
+    /// 선택한 날짜의 컨디션 기록. 없으면 nil이다.
+    private(set) var condition: DailyConditionSnapshot?
 
     var selectedDate: Date
     var isCalendarExpanded = false
@@ -21,6 +23,7 @@ final class HomeViewModel {
     /// 어긋난다. 개발 기기와 CI 러너의 타임존이 달라 CI에서만 깨지는 식이라 찾기 어렵다.
     private let calendar: Calendar
     private var store: PeriodRecordStore { DadariEnvironment.recordStore }
+    private var conditionStore: DailyConditionStore { DadariEnvironment.conditionStore }
 
     init(calendar: Calendar = .current) {
         self.calendar = calendar
@@ -40,6 +43,7 @@ final class HomeViewModel {
         records = (try? store.records()) ?? []
         settings = (try? store.settings()) ?? CycleSettingsSnapshot()
         prediction = DadariEnvironment.currentPrediction(now: now)
+        condition = try? conditionStore.condition(on: selectedDate)
     }
 
     func kind(for date: Date) -> CycleDayKind {
@@ -176,6 +180,19 @@ final class HomeViewModel {
     /// 기록이 바뀌면 예정일이 달라지므로 알림을 다시 잡는다(PRD 7.1).
     private func scheduleReminders(now: Date) {
         Task { await DadariEnvironment.rescheduleReminders(now: now) }
+    }
+
+    // MARK: - 컨디션
+
+    /// 선택한 날짜의 컨디션을 통째로 교체한다. 실패하면 false를 돌려 시트를 열어둔다.
+    func saveCondition(_ symptoms: Set<Symptom>, now: Date = Date()) -> Bool {
+        do {
+            condition = try conditionStore.save(symptoms: symptoms, on: selectedDate, now: now)
+            return true
+        } catch {
+            message = error.localizedDescription
+            return false
+        }
     }
 
     // MARK: - 수정 / 삭제

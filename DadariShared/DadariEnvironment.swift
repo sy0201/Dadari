@@ -35,6 +35,18 @@ enum DadariEnvironment {
 
     static let predictionService = CyclePredictionService()
 
+    /// 컨디션 기록 저장소. 기록 저장소와 같은 컨테이너를 쓴다.
+    static var conditionStore: DailyConditionStore {
+        overrideConditionStore ?? sharedConditionStore
+    }
+
+    private static var overrideConditionStore: DailyConditionStore?
+    private static let sharedConditionStore = DailyConditionStore(container: recordStore.container)
+
+    static func setConditionStoreOverride(_ store: DailyConditionStore?) {
+        overrideConditionStore = store
+    }
+
     static func makeHealthKitCoordinator() -> HealthKitSyncCoordinator {
         HealthKitSyncCoordinator(store: recordStore, writer: HealthKitWriter())
     }

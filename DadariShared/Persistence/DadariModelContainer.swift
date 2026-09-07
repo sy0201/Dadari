@@ -9,6 +9,7 @@ enum DadariModelContainer {
     static let schema = Schema([
         PeriodRecord.self,
         CycleSettings.self,
+        DailyCondition.self,
     ])
 
     /// App Group 컨테이너에 저장하는 공용 컨테이너.
