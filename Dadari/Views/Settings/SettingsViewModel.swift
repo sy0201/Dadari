@@ -72,6 +72,7 @@ final class SettingsViewModel {
             }
             notificationStatus = await notifications.authorizationStatus()
         }
+        // apply가 재예약까지 하므로 여기서 따로 부르지 않는다.
         apply { $0.notificationEnabled = enabled }
     }
 
@@ -118,8 +119,9 @@ final class SettingsViewModel {
     private func apply(_ mutate: @escaping (CycleSettings) -> Void) {
         do {
             settings = try store.updateSettings(mutate)
-            // 주기 설정이 바뀌면 예측이 달라지므로 위젯도 다시 그린다.
+            // 주기 설정이 바뀌면 예측이 달라지므로 위젯도 다시 그리고 알림도 다시 잡는다.
             WidgetCenter.shared.reloadAllTimelines()
+            Task { await DadariEnvironment.rescheduleReminders() }
         } catch {
             message = error.localizedDescription
         }
