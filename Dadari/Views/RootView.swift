@@ -7,12 +7,15 @@ struct RootView: View {
 
     var body: some View {
         Group {
-            switch hasCompletedOnboarding {
-            case true:
-                HomeView()
-            case false:
-                OnboardingView { hasCompletedOnboarding = true }
-            case nil:
+            // Bool?을 switch로 나누면 Xcode 16에서 exhaustive로 인정하지 않는다.
+            // 로컬(Xcode 26)에서는 통과하고 CI에서만 깨져서, 분기를 명시적으로 푼다.
+            if let hasCompletedOnboarding {
+                if hasCompletedOnboarding {
+                    HomeView()
+                } else {
+                    OnboardingView { self.hasCompletedOnboarding = true }
+                }
+            } else {
                 DadariColor.background.ignoresSafeArea()
             }
         }

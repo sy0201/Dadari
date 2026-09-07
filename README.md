@@ -24,6 +24,20 @@ PRD 10번 일정 **2~4.5주차 진행 중.**
 - Xcode 16 이상 (`project.pbxproj`가 동기화 폴더 그룹을 사용)
 - iOS 17.0 이상 (인터랙티브 위젯의 `Button(intent:)`가 iOS 17부터)
 
+### 로컬 Xcode가 CI보다 새 버전이라면
+
+CI는 `macos-15` 러너의 기본 Xcode(16.x)로 돈다. 로컬이 더 새 버전이면 **로컬에서는
+통과하는데 CI에서만 깨지는 코드**가 나올 수 있다. 실제로 `Bool?`을 `switch`로 나눈 코드가
+Xcode 26에서는 통과하고 16.4에서는 "switch must be exhaustive"로 실패했다.
+
+푸시 전에 확인하려면 `DEVELOPER_DIR`을 옮겨 한 번 더 빌드한다.
+
+```bash
+DEVELOPER_DIR=/Applications/Xcode16.1.app/Contents/Developer \
+  xcodebuild build -project Dadari.xcodeproj -scheme Dadari \
+  -destination 'generic/platform=iOS Simulator'
+```
+
 ## 타겟 구성
 
 | 타겟 | 번들 ID | 설명 |
