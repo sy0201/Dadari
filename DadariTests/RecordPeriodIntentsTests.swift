@@ -37,9 +37,9 @@ final class RecordPeriodIntentsTests: XCTestCase {
         XCTAssertEqual(RecordPeriodEndIntent.authenticationPolicy, .alwaysAllowed)
     }
 
-    func test_시작_인텐트는_잠금화면_출처로_기록한다() throws {
+    func test_시작_인텐트는_잠금화면_출처로_기록한다() async throws {
         let now = TestSupport.date(2026, 9, 1)
-        RecordPeriodIntentRunner.run(.start, on: now, now: now)
+        await RecordPeriodIntentRunner.run(.start, on: now, now: now)
 
         let records = try store.records()
         XCTAssertEqual(records.count, 1)
@@ -47,11 +47,11 @@ final class RecordPeriodIntentsTests: XCTestCase {
         XCTAssertEqual(records.first?.startDate, TestSupport.day(2026, 9, 1))
     }
 
-    func test_종료_인텐트는_진행_중인_기록을_닫는다() throws {
-        RecordPeriodIntentRunner.run(
+    func test_종료_인텐트는_진행_중인_기록을_닫는다() async throws {
+        await RecordPeriodIntentRunner.run(
             .start, on: TestSupport.date(2026, 9, 1), now: TestSupport.date(2026, 9, 1)
         )
-        RecordPeriodIntentRunner.run(
+        await RecordPeriodIntentRunner.run(
             .end, on: TestSupport.date(2026, 9, 5), now: TestSupport.date(2026, 9, 5)
         )
 
@@ -60,20 +60,20 @@ final class RecordPeriodIntentsTests: XCTestCase {
         XCTAssertEqual(records.first?.endDate, TestSupport.day(2026, 9, 5))
     }
 
-    func test_인텐트를_연속으로_실행해도_같은_날_기록은_하나다() throws {
+    func test_인텐트를_연속으로_실행해도_같은_날_기록은_하나다() async throws {
         let now = TestSupport.date(2026, 9, 1)
         for _ in 0..<5 {
-            RecordPeriodIntentRunner.run(.start, on: now, now: now)
+            await RecordPeriodIntentRunner.run(.start, on: now, now: now)
         }
 
         XCTAssertEqual(try store.records().count, 1)
     }
 
-    func test_저장에_실패해도_인텐트가_터지지_않는다() throws {
+    func test_저장에_실패해도_인텐트가_터지지_않는다() async throws {
         // 진행 중인 기록이 없는데 종료를 누른 경우. 잠금화면에는 오류를 띄울 자리가 없으므로
         // 예외를 밖으로 던지지 않고 삼켜야 한다.
         let now = TestSupport.date(2026, 9, 1)
-        RecordPeriodIntentRunner.run(.end, on: now, now: now)
+        await RecordPeriodIntentRunner.run(.end, on: now, now: now)
 
         XCTAssertTrue(try store.records().isEmpty)
     }

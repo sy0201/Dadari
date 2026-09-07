@@ -73,6 +73,7 @@ final class SettingsViewModel {
             notificationStatus = await notifications.authorizationStatus()
         }
         apply { $0.notificationEnabled = enabled }
+        await DadariEnvironment.rescheduleReminders()
     }
 
     func isDayBeforeSelected(_ days: Int) -> Bool {
@@ -88,6 +89,7 @@ final class SettingsViewModel {
         }
         // 큰 수(먼 시점)부터 정렬해 D-3, D-1 순으로 보이게 한다.
         apply { $0.notificationDaysBefore = selected.sorted(by: >) }
+        Task { await DadariEnvironment.rescheduleReminders() }
     }
 
     // MARK: - HealthKit
@@ -118,8 +120,9 @@ final class SettingsViewModel {
     private func apply(_ mutate: @escaping (CycleSettings) -> Void) {
         do {
             settings = try store.updateSettings(mutate)
-            // 주기 설정이 바뀌면 예측이 달라지므로 위젯도 다시 그린다.
+            // 주기 설정이 바뀌면 예측이 달라지므로 위젯도 다시 그리고 알림도 다시 잡는다.
             WidgetCenter.shared.reloadAllTimelines()
+            Task { await DadariEnvironment.rescheduleReminders() }
         } catch {
             message = error.localizedDescription
         }

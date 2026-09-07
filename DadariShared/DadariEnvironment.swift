@@ -39,6 +39,22 @@ enum DadariEnvironment {
         HealthKitSyncCoordinator(store: recordStore, writer: HealthKitWriter())
     }
 
+    static func makeReminderService() -> CycleReminderService {
+        CycleReminderService(
+            store: recordStore,
+            scheduler: NotificationScheduler(),
+            authorizer: NotificationAuthorizer()
+        )
+    }
+
+    /// 예측이 달라질 만한 일이 생길 때마다 부른다.
+    ///
+    /// 예측은 기록이 바뀔 때마다 달라지므로, 기존 예약을 지우고 새 날짜로 다시 넣지 않으면
+    /// 날짜가 틀린 알림이 남는다(PRD 7.1).
+    static func rescheduleReminders(now: Date = Date()) async {
+        await makeReminderService().reschedule(now: now)
+    }
+
     /// 현재 저장된 기록과 설정으로 예측을 만든다. 기준 날짜가 없으면 nil이다.
     static func currentPrediction(now: Date = Date()) -> CyclePrediction? {
         guard let records = try? recordStore.recordsOldestFirst(),

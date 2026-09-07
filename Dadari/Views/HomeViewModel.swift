@@ -167,9 +167,15 @@ final class HomeViewModel {
 
             WidgetCenter.shared.reloadAllTimelines()
             reload(now: now)
+            scheduleReminders(now: now)
         } catch {
             message = error.localizedDescription
         }
+    }
+
+    /// 기록이 바뀌면 예정일이 달라지므로 알림을 다시 잡는다(PRD 7.1).
+    private func scheduleReminders(now: Date) {
+        Task { await DadariEnvironment.rescheduleReminders(now: now) }
     }
 
     // MARK: - 수정 / 삭제
@@ -192,6 +198,7 @@ final class HomeViewModel {
             )
             WidgetCenter.shared.reloadAllTimelines()
             reload(now: now)
+            scheduleReminders(now: now)
             return true
         } catch {
             message = error.localizedDescription
@@ -209,6 +216,7 @@ final class HomeViewModel {
             }
             WidgetCenter.shared.reloadAllTimelines()
             reload(now: now)
+            scheduleReminders(now: now)
             return true
         } catch {
             message = error.localizedDescription

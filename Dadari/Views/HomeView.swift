@@ -8,6 +8,7 @@ import WidgetKit
 struct HomeView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var model = HomeViewModel()
+    private var router: AppRouter { AppRouter.shared }
     // 시뮬레이터에서 탭 없이 상태별 스크린샷을 찍기 위한 실행 인자(SampleDataSeeder 참고).
     @State private var isSettingsPresented = {
         #if DEBUG
@@ -65,17 +66,25 @@ struct HomeView: View {
 
             phaseGuideOverlay
         }
-        .onAppear { model.reload() }
+        .task {
+            // scenePhase의 onChange는 초기값에는 불리지 않는다. 앱을 새로 켠 경우
+            // 여기서 한 번 돌려주지 않으면 HealthKit 동기화도 알림 재예약도 일어나지 않는다.
+            model.reload()
+            await runForegroundWork()
+        }
+        .onChange(of: router.pendingRoute) { _, route in
+            // 알림을 탭해 들어온 경우. 지금은 홈 하나뿐이라 오늘로 되돌리고 접는다.
+            guard route != nil else { return }
+            model.selectedDate = Calendar.current.startOfDay(for: Date())
+            model.isCalendarExpanded = false
+            model.reload()
+            router.pendingRoute = nil
+        }
         .onChange(of: scenePhase) { _, phase in
             // 잠금화면 위젯에서 기록하고 앱으로 돌아왔을 때 최신 상태를 다시 읽는다.
             guard phase == .active else { return }
             model.reload()
-            // 위젯이 옛 타임라인을 들고 있는 경우를 줄인다. 앱을 새로 설치한 직후에는
-            // 위젯이 이전 빌드 기준으로 남아 있을 수 있어서, 앱이 앞으로 나올 때마다
-            // 갱신을 요청한다. 익스텐션 자체가 옛 바이너리에 물린 경우는 이걸로도
-            // 풀리지 않으므로, 그때는 위젯을 지웠다 다시 추가해야 한다(SPIKE.md).
-            WidgetCenter.shared.reloadAllTimelines()
-            Task { await DadariEnvironment.makeHealthKitCoordinator().syncPending() }
+            Task { await runForegroundWork() }
         }
         .alert("알림", isPresented: Binding(
             get: { model.message != nil },
@@ -174,6 +183,20 @@ struct HomeView: View {
             }
             .transition(.opacity)
         }
+    }
+
+    /// 앱이 앞으로 나올 때마다 하는 일. 콜드 런치와 백그라운드 복귀 양쪽에서 부른다.
+    private func runForegroundWork() async {
+        // 위젯이 옛 타임라인을 들고 있는 경우를 줄인다. 앱을 새로 설치한 직후에는
+        // 위젯이 이전 빌드 기준으로 남아 있을 수 있다. 익스텐션 자체가 옛 바이너리에
+        // 물린 경우는 이걸로 풀리지 않으므로 위젯을 지웠다 다시 추가해야 한다(SPIKE.md).
+        WidgetCenter.shared.reloadAllTimelines()
+
+        // 잠금화면에서 쌓인 기록을 건강 앱으로 내보낸다.
+        await DadariEnvironment.makeHealthKitCoordinator().syncPending()
+
+        // 날짜가 지나면 예측도 바뀐다. 앱을 열 때마다 알림 날짜를 다시 맞춘다.
+        await DadariEnvironment.rescheduleReminders()
     }
 
     private func dismissPhaseGuide() {

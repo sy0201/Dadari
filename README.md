@@ -16,6 +16,7 @@ PRD 10번 일정 **2~4.5주차 진행 중.**
   스파이크용 UserDefaults 저장소를 App Group 컨테이너의 SwiftData로 교체했다.
 - **5~8주차 완료**: 목업(`ui-mockup.html`) 기준으로 홈 화면과 위젯 UI 구현.
 - **필수 화면 보강**: 온보딩, 권한 프리퍼미션, 설정 (UX-설계 6번).
+- **9주차 완료**: 예정일 D-3, D-1 로컬 알림.
 
 개발용 대시보드(`DevDashboardView`)는 설정 > 정보에서 열린다(DEBUG 빌드만). 실기기 확인용이다.
 
@@ -64,7 +65,7 @@ DadariShared/              앱 + 위젯이 함께 컴파일하는 공유 소스
   Design/                    색상 팔레트, 문페이즈 뷰
   Prediction/                CyclePredictionService, CycleCalendar
   Health/                    HealthKit 쓰기
-  Notifications/             알림 권한 (예약은 9주차)
+  Notifications/             알림 권한, 예약, 재예약
 DadariTests/               유닛 테스트
 Config/                    엔타이틀먼트, 위젯 Info.plist
 Scripts/                   CI 보조 스크립트
@@ -103,6 +104,9 @@ xcodebuild test \
 - **폰트 서브셋**: 고운바탕 원본은 두 벌 합쳐 16MB라 앱에서 실제로 쓰는 글자만 남겨
   26KB로 줄여 번들에 넣는다(`Scripts/subset_fonts.py`). 고운바탕으로 새 문구를 표시하려면
   스크립트의 글자 목록을 갱신해야 한다.
+- **알림은 항상 지우고 다시 넣는다**: 예측은 기록이 바뀔 때마다 달라지므로,
+  재예약할 때 기존 예약을 먼저 지운다. 그렇게 하지 않으면 날짜가 틀린 알림이 남는다.
+  예정일이 한참 지나 예측을 멈춘 상태(PRD 4.1)에서는 알림도 보내지 않는다.
 - **HealthKit은 지연 동기화**: 잠금화면 기록은 위젯 익스텐션 프로세스에서 일어나는데
   거기서 HealthKit을 쓰려면 별도 권한과 잠금 상태 처리가 필요하다. 위젯은 저장만 하고,
   앱이 앞으로 나올 때 `HealthKitSyncCoordinator`가 밀린 기록을 내보낸다.

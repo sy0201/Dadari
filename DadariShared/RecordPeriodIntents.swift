@@ -15,7 +15,7 @@ struct RecordPeriodStartIntent: AppIntent {
     init() {}
 
     func perform() async throws -> some IntentResult {
-        RecordPeriodIntentRunner.run(.start)
+        await RecordPeriodIntentRunner.run(.start)
         return .result()
     }
 }
@@ -29,7 +29,7 @@ struct RecordPeriodEndIntent: AppIntent {
     init() {}
 
     func perform() async throws -> some IntentResult {
-        RecordPeriodIntentRunner.run(.end)
+        await RecordPeriodIntentRunner.run(.end)
         return .result()
     }
 }
@@ -45,7 +45,7 @@ enum RecordPeriodIntentRunner {
         case end
     }
 
-    static func run(_ kind: Kind, on date: Date = Date(), now: Date = Date()) {
+    static func run(_ kind: Kind, on date: Date = Date(), now: Date = Date()) async {
         let store = DadariEnvironment.recordStore
         do {
             let outcome: PeriodRecordOutcome
@@ -72,6 +72,10 @@ enum RecordPeriodIntentRunner {
         }
 
         WidgetCenter.shared.reloadAllTimelines()
+
+        // 기록이 바뀌면 예정일도 달라진다. 잠금화면에서 기록한 경우에도 알림을 다시 잡아야
+        // 날짜가 틀린 알림이 남지 않는다. 익스텐션에서도 앱의 알림 센터에 접근할 수 있다.
+        await DadariEnvironment.rescheduleReminders(now: now)
     }
 
     /// 이 인텐트를 실행한 바이너리의 빌드 시각. 위젯이 옛 빌드에 물려 있는지 가려낸다.
