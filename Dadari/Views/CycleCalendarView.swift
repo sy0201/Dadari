@@ -9,6 +9,10 @@ import SwiftUI
 /// 늘 맨 왼쪽으로 오면서 요일 열이 매번 어긋난다. 같은 주 안에서 날짜를 옮길 때마다
 /// 격자가 흔들려 위치를 가늠하기 어려웠다. 실제로 써 본 뒤 달력 주 고정으로 바꿨고,
 /// PRD 3.2와 목업(ui-mockup.html)도 그에 맞춰 갱신했다.
+///
+/// 이동 범위: 과거는 제한이 없고, 미래는 **오늘이 속한 달의 다음 달 말일까지**만 본다.
+/// 지난 기록을 되짚어 보는 건 필요하지만, 아주 먼 미래의 예측은 의미가 없기 때문이다.
+/// 월간 보기에서는 헤더의 화살표로 달을 넘기고, 주간 보기는 좌우 스와이프로 주를 넘긴다.
 struct CycleCalendarView: View {
     @Binding var selectedDate: Date
     @Binding var isExpanded: Bool
@@ -51,8 +55,40 @@ struct CycleCalendarView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .overlay(alignment: .trailing) {
+            // 헤더 전체가 펼침 토글이라, 화살표는 겹쳐 올려 각자 탭을 받게 한다.
+            if isExpanded {
+                monthArrows
+                    .padding(.trailing, 24)
+                    .padding(.bottom, 8)
+            }
+        }
         .accessibilityLabel("\(monthLabel), \(isExpanded ? "월간 보기" : "주간 보기")")
         .accessibilityHint("탭하면 \(isExpanded ? "주간" : "월간")으로 바뀝니다")
+    }
+
+    private var monthArrows: some View {
+        HStack(spacing: 4) {
+            monthArrow(systemName: "chevron.left", months: -1, label: "이전 달")
+            monthArrow(systemName: "chevron.right", months: 1, label: "다음 달")
+        }
+    }
+
+    private func monthArrow(systemName: String, months: Int, label: String) -> some View {
+        let target = Self.shifted(startOfSelectedDay, byMonths: months, calendar: calendar)
+        return Button {
+            guard let target else { return }
+            withAnimation(.easeInOut(duration: 0.2)) { selectedDate = target }
+        } label: {
+            Image(systemName: systemName)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(target == nil ? DadariColor.inkMuted : DadariColor.inkSoft)
+                .frame(width: 32, height: 28)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(target == nil)
+        .accessibilityLabel(label)
     }
 
     private var monthLabel: String {
@@ -105,7 +141,9 @@ struct CycleCalendarView: View {
             .onEnded { value in
                 guard abs(value.translation.width) > abs(value.translation.height) else { return }
                 let offset = value.translation.width < 0 ? 7 : -7
-                guard let moved = calendar.date(byAdding: .day, value: offset, to: startOfSelectedDay) else {
+                guard let moved = calendar.date(byAdding: .day, value: offset, to: startOfSelectedDay),
+                      Self.isWithinViewableRange(moved, calendar: calendar)
+                else {
                     return
                 }
                 withAnimation(.easeInOut(duration: 0.2)) {
@@ -185,6 +223,34 @@ struct CycleCalendarView: View {
                 .font(.system(size: 10))
                 .foregroundStyle(DadariColor.inkSoft)
         }
+    }
+
+    // MARK: - 이동 범위
+
+    /// 볼 수 있는 가장 먼 날짜. 오늘이 속한 달의 다음 달 말일이다.
+    static func latestViewableDate(now: Date = Date(), calendar: Calendar) -> Date? {
+        guard let thisMonth = calendar.dateInterval(of: .month, for: now),
+              let nextMonthStart = calendar.date(byAdding: .month, value: 1, to: thisMonth.start),
+              let nextMonth = calendar.dateInterval(of: .month, for: nextMonthStart),
+              let lastDay = calendar.date(byAdding: .day, value: -1, to: nextMonth.end)
+        else { return nil }
+        return calendar.startOfDay(for: lastDay)
+    }
+
+    /// 과거는 끝없이 허용하고, 미래는 `latestViewableDate`까지만 허용한다.
+    static func isWithinViewableRange(_ date: Date, now: Date = Date(), calendar: Calendar) -> Bool {
+        guard let latest = latestViewableDate(now: now, calendar: calendar) else { return true }
+        return calendar.startOfDay(for: date) <= latest
+    }
+
+    /// 한 달씩 옮긴 날짜. 범위를 벗어나면 nil이다(그때는 화살표를 비활성으로 보인다).
+    static func shifted(
+        _ date: Date, byMonths months: Int, now: Date = Date(), calendar: Calendar
+    ) -> Date? {
+        guard let moved = calendar.date(byAdding: .month, value: months, to: date),
+              isWithinViewableRange(moved, now: now, calendar: calendar)
+        else { return nil }
+        return moved
     }
 
     // MARK: - Helpers

@@ -65,3 +65,67 @@ final class WeekStripDatesTests: XCTestCase {
         XCTAssertEqual(dates.last, TestSupport.day(2026, 9, 5))
     }
 }
+
+/// 달력 이동 범위 규칙. 과거는 자유롭게, 미래는 다음 달까지만 본다.
+final class CalendarViewableRangeTests: XCTestCase {
+    private var calendar: Calendar { TestSupport.calendar }
+    /// 2026-10-28을 "오늘"로 고정한다. 허용 한도는 2026-11-30이다.
+    private let now = TestSupport.date(2026, 10, 28)
+
+    func test_가장_먼_날짜는_다음_달_말일이다() {
+        let latest = CycleCalendarView.latestViewableDate(now: now, calendar: calendar)
+
+        XCTAssertEqual(latest, TestSupport.day(2026, 11, 30))
+    }
+
+    func test_연말에는_다음_해_1월_말일까지다() {
+        let latest = CycleCalendarView.latestViewableDate(
+            now: TestSupport.date(2026, 12, 15), calendar: calendar
+        )
+
+        XCTAssertEqual(latest, TestSupport.day(2027, 1, 31))
+    }
+
+    func test_과거는_아무리_멀어도_볼_수_있다() {
+        XCTAssertTrue(CycleCalendarView.isWithinViewableRange(
+            TestSupport.date(2024, 1, 1), now: now, calendar: calendar
+        ))
+    }
+
+    func test_다음_달_말일까지는_허용하고_그_다음날부터는_막는다() {
+        XCTAssertTrue(CycleCalendarView.isWithinViewableRange(
+            TestSupport.date(2026, 11, 30), now: now, calendar: calendar
+        ))
+        XCTAssertFalse(CycleCalendarView.isWithinViewableRange(
+            TestSupport.date(2026, 12, 1), now: now, calendar: calendar
+        ))
+    }
+
+    func test_이전_달로_옮기면_한_달_전_같은_날이다() {
+        let moved = CycleCalendarView.shifted(
+            TestSupport.day(2026, 10, 28), byMonths: -1, now: now, calendar: calendar
+        )
+
+        XCTAssertEqual(moved, TestSupport.day(2026, 9, 28))
+    }
+
+    func test_다음_달로는_한_번만_옮길_수_있다() {
+        let once = CycleCalendarView.shifted(
+            TestSupport.day(2026, 10, 28), byMonths: 1, now: now, calendar: calendar
+        )
+        XCTAssertEqual(once, TestSupport.day(2026, 11, 28))
+
+        let twice = CycleCalendarView.shifted(
+            TestSupport.day(2026, 11, 28), byMonths: 1, now: now, calendar: calendar
+        )
+        XCTAssertNil(twice, "두 달 뒤는 볼 수 없다")
+    }
+
+    func test_31일에서_짧은_달로_옮겨도_날짜가_넘치지_않는다() {
+        let moved = CycleCalendarView.shifted(
+            TestSupport.day(2026, 3, 31), byMonths: -1, now: now, calendar: calendar
+        )
+
+        XCTAssertEqual(moved, TestSupport.day(2026, 2, 28))
+    }
+}
