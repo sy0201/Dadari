@@ -34,6 +34,10 @@
   .week-strip-head{ display:flex; justify-content:space-between; align-items:center; padding-bottom:8px; cursor:pointer; }
   .week-strip-head .m{ font-family:'Gowun Batang', serif; font-size:13.5px; }
   .week-strip-head .chevron{ font-size:11px; color:var(--ink-soft); transition:transform .25s ease; }
+  .month-nav{ display:none; gap:2px; margin-left:auto; margin-right:14px; }
+  .cal-wrap.expanded .month-nav{ display:flex; }
+  .month-nav button{ border:0; background:none; color:var(--ink-soft); font-size:13px; width:28px; height:24px; cursor:pointer; }
+  .month-nav button:disabled{ color:#C9C9CE; cursor:default; }
   .week-row{ display:flex; justify-content:space-between; margin-bottom:6px; }
   .week-cell{ display:flex; flex-direction:column; align-items:center; gap:5px; width:13%; cursor:pointer; }
   .week-cell .dow{ font-size:9px; color:var(--ink-soft); }
@@ -133,6 +137,10 @@
         <div class="cal-wrap" id="calWrap" style="margin-top:14px;">
           <div class="week-strip-head" id="weekHead">
             <span class="m" id="monthLabel">2026년 8월</span>
+            <span class="month-nav">
+              <button type="button" id="prevMonth" aria-label="이전 달">‹</button>
+              <button type="button" id="nextMonth" aria-label="다음 달">›</button>
+            </span>
             <span class="chevron">⌄</span>
           </div>
           <div class="week-row" id="weekRow"></div>
@@ -197,7 +205,7 @@
       </div>
     </div>
   </div>
-  <div class="caption">375px 기준 · 주간은 일~토로 고정되고, 좌우로 밀면 이전/다음 주로 넘어가요</div>
+  <div class="caption">375px 기준 · 주간은 일~토로 고정되고, 좌우로 밀면 이전/다음 주로 넘어가요 · 월간은 화살표로 달을 넘기고, 미래는 다음 달 말일까지만 열려요</div>
 </div>
 
 <script>
@@ -261,11 +269,12 @@
       el.className = 'cal-dow'; el.textContent = d;
       grid.appendChild(el);
     });
-    const first = new Date(2026,7,1);
+    const first = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
     const startPad = first.getDay();
+    const dayCount = new Date(first.getFullYear(), first.getMonth()+1, 0).getDate();
     for(let i=0;i<startPad;i++){ grid.appendChild(document.createElement('div')); }
-    for(let day=1; day<=31; day++){
-      const d = new Date(2026,7,day);
+    for(let day=1; day<=dayCount; day++){
+      const d = new Date(first.getFullYear(), first.getMonth(), day);
       const type = dayType(d);
       const isSel = fmt(d) === fmt(selectedDate);
       const cell = document.createElement('div');
@@ -302,6 +311,23 @@
     document.getElementById('moonStatus').textContent = statusText;
     document.getElementById('moonSub').textContent = sub;
     document.getElementById('monthLabel').textContent = selectedDate.getFullYear() + '년 ' + (selectedDate.getMonth()+1) + '월';
+    updateMonthNav();
+  }
+
+  // 이동 범위: 과거는 제한 없음, 미래는 "오늘"이 속한 달의 다음 달 말일까지. 목업의 오늘은 8/16이다.
+  const MOCK_TODAY = new Date(2026, 7, 16);
+  const LATEST_VIEWABLE = new Date(MOCK_TODAY.getFullYear(), MOCK_TODAY.getMonth() + 2, 0); // 9/30
+  function inViewableRange(d){ return d <= LATEST_VIEWABLE; }
+
+  function shiftMonth(n){
+    const r = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + n, 1);
+    const lastDay = new Date(r.getFullYear(), r.getMonth() + 1, 0).getDate();
+    r.setDate(Math.min(selectedDate.getDate(), lastDay)); // 31일에서 짧은 달로 가도 넘치지 않게
+    return r;
+  }
+
+  function updateMonthNav(){
+    document.getElementById('nextMonth').disabled = !inViewableRange(shiftMonth(1));
   }
 
   function selectDate(d){
@@ -314,6 +340,13 @@
   document.getElementById('weekHead').addEventListener('click', ()=>{
     document.getElementById('calWrap').classList.toggle('expanded');
   });
+  // 월 이동 화살표는 헤더 토글과 따로 동작해야 하므로 클릭이 위로 번지지 않게 막는다.
+  document.getElementById('prevMonth').addEventListener('click', e => { e.stopPropagation(); selectDate(shiftMonth(-1)); });
+  document.getElementById('nextMonth').addEventListener('click', e => {
+    e.stopPropagation();
+    const t = shiftMonth(1);
+    if (inViewableRange(t)) selectDate(t);
+  });
 
   // 주간 스트립 좌우 스와이프. 선택한 요일은 유지하고 주만 옮긴다.
   (function enableWeekSwipe(){
@@ -325,7 +358,8 @@
       const dx = e.clientX - startX;
       startX = null;
       if (Math.abs(dx) < 40) return;
-      selectDate(addDays(selectedDate, dx < 0 ? 7 : -7));
+      const moved = addDays(selectedDate, dx < 0 ? 7 : -7);
+      if (inViewableRange(moved)) selectDate(moved);
     });
   })();
 
