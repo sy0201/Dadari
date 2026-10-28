@@ -146,7 +146,7 @@ struct SettingsView: View {
     // MARK: - 정보
 
     /// GitHub Pages에 올린 방침 문서. App Store Connect의 개인정보처리방침 URL과 같아야 한다.
-    private static let privacyPolicyURL = URL(string: "https://sy0201.github.io/Dadari/privacy.html")!
+    private static let privacyPolicyURL = URL(string: "https://dadari-app.github.io/privacy.html")!
 
     private var aboutSection: some View {
         Section {
