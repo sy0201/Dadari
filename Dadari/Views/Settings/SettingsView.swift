@@ -95,6 +95,10 @@ struct SettingsView: View {
                 Text("시스템 알림 권한이 꺼져 있어요. 설정 > 알림 > 다달이에서 켜주세요.")
                     .font(.footnote)
                     .foregroundStyle(DadariColor.accent2Deep)
+                // 한 번 거부하면 앱에서 다시 물어볼 수 없다. 설정 앱으로 바로 보내준다.
+                Button("설정 앱 열기") {
+                    if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
+                }
             }
         } header: {
             Text("알림")
@@ -141,12 +145,21 @@ struct SettingsView: View {
 
     // MARK: - 정보
 
+    /// GitHub Pages에 올린 방침 문서. App Store Connect의 개인정보처리방침 URL과 같아야 한다.
+    private static let privacyPolicyURL = URL(string: "https://dadari-app.github.io/privacy.html")!
+
     private var aboutSection: some View {
-        Section("정보") {
+        Section {
             LabeledContent("버전", value: appVersion)
+            Link("개인정보처리방침", destination: Self.privacyPolicyURL)
             #if DEBUG
             Button("개발용 대시보드") { isDevDashboardPresented = true }
             #endif
+        } header: {
+            Text("정보")
+        } footer: {
+            // 예측은 입력한 기록으로 계산한 참고값이다. 피임이나 진단으로 오해하지 않게 밝혀둔다.
+            Text("예정일과 가임기는 기록을 바탕으로 한 참고용 예측이에요. 피임 수단이 아니고 의학적 진단을 대신하지 않아요.")
         }
     }
 
